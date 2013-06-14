@@ -90,20 +90,17 @@ retry:
 	previous = _global_state.current;
 	_global_state.current = current;
 
-        /* TODO: do we need to check if previous is NULL */
-        if (previous) {
-            /* save previous as the current threadlet of its own (real) thread */
-            /* TODO: review this */
-            if (PyDict_SetItem(previous->ts_dict, ts_curkey, (PyObject*) previous) < 0) {
-                Py_DECREF(previous);
-                Py_DECREF(current);
-                Py_XDECREF(exc);
-                Py_XDECREF(val);
-                Py_XDECREF(tb);
-                return NULL;
-            }
+        /* save previous as the current threadlet of its own (real) thread */
+        /* TODO: review this */
+        if (PyDict_SetItem(previous->ts_dict, ts_curkey, (PyObject*) previous) < 0) {
+            Py_DECREF(previous);
+            Py_DECREF(current);
+            Py_XDECREF(exc);
+            Py_XDECREF(val);
+            Py_XDECREF(tb);
+            return NULL;
         }
-        Py_XDECREF(previous);
+        Py_DECREF(previous);
 
 	if (_global_state.current != current) {
             /* some Python code executed above and there was a thread switch,
