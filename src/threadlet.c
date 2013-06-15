@@ -279,14 +279,15 @@ stacklet__post_switch(stacklet_handle h)
     _global_state.origin = NULL;
     _global_state.destination = NULL;
     _global_state.value = NULL;
-    _global_state.current = origin;
-    /* TODO: call update_current? incref? */
 
     if (h == EMPTY_STACKLET_HANDLE) {
+        /* the current threadlet has ended */
         self->stacklet_h = h;
+        _global_state.current = origin;
     } else {
         self->stacklet_h = origin->stacklet_h;
         origin->stacklet_h = h;
+        _global_state.current = self;
     }
 
     return result;
