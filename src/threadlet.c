@@ -331,10 +331,10 @@ do_switch(Threadlet *self, PyObject *value)
     tstate = PyThreadState_GET();
     tstate->recursion_depth = current->ts.recursion_depth;
     tstate->frame = current->ts.frame;
-    current->ts.frame = NULL;
     tstate->exc_type = current->ts.exc_type;
     tstate->exc_value = current->ts.exc_value;
     tstate->exc_traceback = current->ts.exc_traceback;
+    current->ts.frame = NULL;
     current->ts.exc_type = NULL;
     current->ts.exc_value = NULL;
     current->ts.exc_traceback = NULL;
@@ -527,6 +527,22 @@ Threadlet_parent_set(Threadlet *self, PyObject *val, void* c)
 }
 
 
+static PyObject *
+Threadlet_frame_get(Threadlet *self, void* c)
+{
+	PyObject *result;
+	UNUSED_ARG(c);
+
+	if (self->ts.frame != NULL) {
+	    result = (PyObject *)self->ts.frame;
+	} else {
+	    result = Py_None;
+	}
+	Py_INCREF(result);
+	return result;
+}
+
+
 static int
 Threadlet_tp_traverse(Threadlet *self, visitproc visit, void *arg)
 {
@@ -573,6 +589,7 @@ Threadlet_tp_methods[] = {
 static PyGetSetDef Threadlet_tp_getsets[] = {
     {"__dict__", (getter)Threadlet_dict_get, (setter)Threadlet_dict_set, "Instance dictionary", NULL},
     {"parent", (getter)Threadlet_parent_get, (setter)Threadlet_parent_set, "Threadlet parent or None if it's the main threadlet", NULL},
+    {"frame", (getter)Threadlet_frame_get, NULL, "Current top frame or None", NULL},
     {NULL}
 };
 
