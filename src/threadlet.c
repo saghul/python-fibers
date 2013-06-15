@@ -240,7 +240,7 @@ Threadlet_tp_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 static stacklet_handle
 stacklet__callback(stacklet_handle h, void *arg)
 {
-    Threadlet *origin, *self;
+    Threadlet *origin, *self, *parent;
     PyObject *result;
 
     origin = _global_state.origin;
@@ -259,6 +259,12 @@ stacklet__callback(stacklet_handle h, void *arg)
     _global_state.origin = origin;
     _global_state.destination = self;
 
+    /* this threadlet has finished, select the parent as the next one to be run  */
+    for (parent = self->parent; parent != NULL; parent = parent->parent) {
+        _global_state.current = parent;
+        return parent->stacklet_h;
+    }
+
     return origin->stacklet_h;
 }
 
@@ -275,9 +281,9 @@ stacklet__post_switch(stacklet_handle h)
     _global_state.value = NULL;
 
     if (h == EMPTY_STACKLET_HANDLE) {
-        /* the current threadlet has ended */
+        /* the current threadlet has ended, the reference to current is updated in
+         * stacklet__callback, right after the Python function has returned */
         self->stacklet_h = h;
-        _global_state.current = origin;
     } else {
         self->stacklet_h = origin->stacklet_h;
         origin->stacklet_h = h;
