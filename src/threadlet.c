@@ -170,7 +170,13 @@ Threadlet_tp_init(Threadlet *self, PyObject *args, PyObject *kwargs)
         return -1;
     }
 
-    if (!parent) {
+    if (parent) {
+        /* check if parent is on the same (real) thread */
+        if (parent->ts_dict != PyThreadState_GET()->dict) {
+            PyErr_SetString(PyExc_ValueError, "parent cannot be on a different thread");
+            return -1;
+        }
+    } else {
         parent = _global_state.current;
     }
 
@@ -202,10 +208,11 @@ Threadlet_tp_init(Threadlet *self, PyObject *args, PyObject *kwargs)
     self->args = t_args;
     self->kwargs = t_kwargs;
 
-    /* TODO: check if parent is in the same thread, compare the tstate */
     Py_INCREF(parent);
     self->parent = parent;
     self->thread_h = parent->thread_h;
+    self->ts_dict = parent->ts_dict;
+    Py_INCREF(self->ts_dict);
 
     self->initialized = True;
     return 0;
@@ -292,13 +299,7 @@ do_switch(Threadlet *self, PyObject *value)
     PyThreadState *tstate;
     stacklet_handle stacklet_h;
     Threadlet *current;
-    PyObject *result, *tmp;
-
-    /* set ts_dict to the same as parent */
-    tmp = self->ts_dict;
-    self->ts_dict = self->parent->ts_dict;
-    Py_INCREF(self->ts_dict);
-    Py_XDECREF(tmp);
+    PyObject *result;
 
     /* save state */
     current = _global_state.current;
