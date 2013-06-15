@@ -91,7 +91,6 @@ retry:
 	_global_state.current = current;
 
         /* save previous as the current threadlet of its own (real) thread */
-        /* TODO: review this */
         if (PyDict_SetItem(previous->ts_dict, ts_curkey, (PyObject*) previous) < 0) {
             Py_DECREF(previous);
             Py_DECREF(current);
