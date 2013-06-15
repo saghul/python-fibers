@@ -259,12 +259,6 @@ stacklet__callback(stacklet_handle h, void *arg)
     _global_state.origin = origin;
     _global_state.destination = self;
 
-    if (origin->stacklet_h == NULL) {
-        /* switch to parent */
-        /* TODO: find a proper parent */
-        _global_state.origin = origin->parent;
-        return origin->parent->stacklet_h;
-    }
     return origin->stacklet_h;
 }
 
