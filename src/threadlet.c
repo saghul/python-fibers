@@ -43,7 +43,7 @@ threadlet_create_main(void)
     t_main->ts_dict = dict;
     t_main->parent = NULL;
     t_main->thread_h = stacklet_newthread();
-    t_main->stacklet_h = EMPTY_STACKLET_HANDLE;
+    t_main->stacklet_h = NULL;
     t_main->initialized = True;
     return t_main;
 }
