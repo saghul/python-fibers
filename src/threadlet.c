@@ -548,7 +548,42 @@ Threadlet_parent_get(Threadlet *self, void* c)
 static int
 Threadlet_parent_set(Threadlet *self, PyObject *val, void* c)
 {
-    /* TODO, set parent. Cannot be deleted, cannot be None! */
+    Threadlet *p, *nparent;
+    UNUSED_ARG(c);
+
+    if (val == NULL) {
+        PyErr_SetString(PyExc_AttributeError, "can't delete attribute");
+        return -1;
+    }
+
+    if (!PyObject_TypeCheck(val, &ThreadletType)) {
+        PyErr_SetString(PyExc_TypeError, "parent must be a threadlet");
+        return -1;
+    }
+
+    nparent = (Threadlet *)val;
+    for (p = nparent; p != NULL; p = p->parent) {
+        if (p == self) {
+            PyErr_SetString(PyExc_ValueError, "cyclic parent chain");
+            return -1;
+        }
+    }
+
+    if (nparent->stacklet_h == EMPTY_STACKLET_HANDLE) {
+        PyErr_SetString(PyExc_ValueError, "parent must not have ended");
+        return -1;
+    }
+
+    if (nparent->thread_h != self->thread_h) {
+        PyErr_SetString(PyExc_ValueError, "parent cannot be on a different thread");
+        return -1;
+    }
+
+    p = self->parent;
+    self->parent = nparent;
+    Py_INCREF(nparent);
+    Py_XDECREF(p);
+
     return 0;
 }
 
