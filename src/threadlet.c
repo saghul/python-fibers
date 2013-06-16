@@ -680,7 +680,7 @@ static PyTypeObject ThreadletType = {
     (traverseproc)Threadlet_tp_traverse,                            /*tp_traverse*/
     (inquiry)Threadlet_tp_clear,                                    /*tp_clear*/
     0,                                                              /*tp_richcompare*/
-    0,                                                              /*tp_weaklistoffset*/
+    offsetof(Threadlet, weakreflist),	                            /* tp_weaklistoffset */
     0,                                                              /*tp_iter*/
     0,                                                              /*tp_iternext*/
     Threadlet_tp_methods,                                           /*tp_methods*/
