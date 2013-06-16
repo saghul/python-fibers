@@ -690,7 +690,7 @@ static PyTypeObject ThreadletType = {
     0,                                                              /*tp_dict*/
     0,                                                              /*tp_descr_get*/
     0,                                                              /*tp_descr_set*/
-    0,                                                              /*tp_dictoffset*/
+    offsetof(Threadlet, dict),                                      /*tp_dictoffset*/
     (initproc)Threadlet_tp_init,                                    /*tp_init*/
     0,                                                              /*tp_alloc*/
     Threadlet_tp_new,                                               /*tp_new*/
