@@ -242,6 +242,7 @@ stacklet__callback(stacklet_handle h, void *arg)
 {
     Threadlet *origin, *self, *parent;
     PyObject *result;
+    PyObject *exc, *val, *tb;
 
     origin = _global_state.origin;
     self = _global_state.destination;
@@ -253,6 +254,18 @@ stacklet__callback(stacklet_handle h, void *arg)
     } else {
         result = Py_None;
         Py_INCREF(Py_None);
+    }
+
+    /* catch and ignore ThreadletExit exception */
+    if (result == NULL && PyErr_ExceptionMatches(PyExc_ThreadletExit)) {
+        PyErr_Fetch(&exc, &val, &tb);
+        if (val == NULL) {
+            val = Py_None;
+            Py_INCREF(Py_None);
+        }
+        result = val;
+        Py_DECREF(exc);
+        Py_XDECREF(tb);
     }
 
     _global_state.value = result;
@@ -299,9 +312,8 @@ do_switch(Threadlet *self, PyObject *value)
 {
     PyThreadState *tstate;
     stacklet_handle stacklet_h;
-    Threadlet *current, *parent;
+    Threadlet *current;
     PyObject *result;
-    PyObject *exc, *val, *tb;
 
     /* save state */
     current = _global_state.current;
@@ -341,31 +353,6 @@ do_switch(Threadlet *self, PyObject *value)
     current->ts.exc_traceback = NULL;
 
     Py_DECREF(current);
-
-    /* catch and ignore ThreadletExit exception */
-    if (result == NULL && PyErr_ExceptionMatches(PyExc_ThreadletExit)) {
-        PyErr_Fetch(&exc, &val, &tb);
-        if (val == NULL) {
-            Py_INCREF(Py_None);
-            val = Py_None;
-        }
-        result = val;
-        Py_DECREF(exc);
-        Py_XDECREF(tb);
-
-        /* switch to parent */
-        for (parent = self->parent; parent != NULL; parent = parent->parent) {
-            result = do_switch(parent, result);
-            /* Return here means switch to parent failed,
-             * in which case we throw *current* exception
-             * to the next parent in chain.
-             */
-            assert(result == NULL);
-        }
-        /* We ran out of parents, cannot continue */
-        PyErr_WriteUnraisable((PyObject *) self);
-        Py_FatalError("no more parents, cannot continue");
-    }
 
     return result;
 }
