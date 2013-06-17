@@ -479,6 +479,14 @@ error:
 
 
 static PyObject *
+Threadlet_func_getstate(Threadlet *self)
+{
+    PyErr_Format(PyExc_TypeError, "cannot serialize '%s' object", Py_TYPE(self)->tp_name);
+    return NULL;
+}
+
+
+static PyObject *
 Threadlet_dict_get(Threadlet *self, void* c)
 {
     UNUSED_ARG(c);
@@ -630,6 +638,7 @@ static PyMethodDef
 Threadlet_tp_methods[] = {
     { "switch", (PyCFunction)Threadlet_func_switch, METH_VARARGS, "Switch execution to this threadlet" },
     { "throw", (PyCFunction)Threadlet_func_throw, METH_VARARGS, "Switch execution and raise the specified exception to this threadlet" },
+    { "__getstate__", (PyCFunction)Threadlet_func_getstate, METH_NOARGS, "Serialize the threadlet object, not really" },
     { NULL }
 };
 
