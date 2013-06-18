@@ -243,11 +243,24 @@ stacklet__callback(stacklet_handle h, void *arg)
     Threadlet *origin, *self, *parent;
     PyObject *result;
     PyObject *exc, *val, *tb;
+    PyThreadState *tstate;
 
     origin = _global_state.origin;
     self = _global_state.destination;
     origin->stacklet_h = h;
     _global_state.current = self;
+
+    /* set current thread state before starting this new threadlet */
+    tstate = PyThreadState_GET();
+    tstate->frame = NULL;
+    tstate->exc_type = NULL;
+    tstate->exc_value = NULL;
+    tstate->exc_traceback = NULL;
+    self->ts.recursion_depth = tstate->recursion_depth;
+    self->ts.frame = NULL;
+    self->ts.exc_type = NULL;
+    self->ts.exc_value = NULL;
+    self->ts.exc_traceback = NULL;
 
     if (self->target) {
         result = PyObject_Call(self->target, self->args, self->kwargs);
@@ -336,11 +349,9 @@ do_switch(Threadlet *self, PyObject *value)
         stacklet_h = stacklet_switch(self->stacklet_h);
     }
 
-    /* we are now in the just switched threadlet */
     result = stacklet__post_switch(stacklet_h);
 
     /* restore state */
-    /* TODO: use 'origin' variable name to make it clearer */
     tstate = PyThreadState_GET();
     tstate->recursion_depth = current->ts.recursion_depth;
     tstate->frame = current->ts.frame;
