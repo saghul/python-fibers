@@ -262,6 +262,9 @@ stacklet__callback(stacklet_handle h, void *arg)
     self->ts.exc_value = NULL;
     self->ts.exc_traceback = NULL;
 
+    /* keep this threadlet alive while it runs */
+    Py_INCREF(self);
+
     if (self->target) {
         result = PyObject_Call(self->target, self->args, self->kwargs);
     } else {
@@ -288,6 +291,7 @@ stacklet__callback(stacklet_handle h, void *arg)
     /* this threadlet has finished, select the parent as the next one to be run  */
     for (parent = self->parent; parent != NULL; parent = parent->parent) {
         _global_state.current = parent;
+        Py_DECREF(self);
         return parent->stacklet_h;
     }
 
