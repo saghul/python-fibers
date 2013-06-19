@@ -637,9 +637,6 @@ Threadlet_tp_clear(Threadlet *self)
 static void
 Threadlet_tp_dealloc(Threadlet *self)
 {
-    if (self->stacklet_h && self->stacklet_h != EMPTY_STACKLET_HANDLE) {
-        stacklet_destroy(self->stacklet_h);
-    }
     /* TODO: dealloc thread handle. when? */
     if (self->weakreflist != NULL) {
         PyObject_ClearWeakRefs((PyObject *)self);
