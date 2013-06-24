@@ -408,7 +408,6 @@ Threadlet_func_switch(Threadlet *self, PyObject *args)
         return NULL;
     }
     Py_INCREF(value);
-    /* TODO: need to decref? when? */
 
     return do_switch(self, value);
 }
