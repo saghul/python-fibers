@@ -291,7 +291,6 @@ stacklet__callback(stacklet_handle h, void *arg)
     /* this threadlet has finished, select the parent as the next one to be run  */
     for (parent = self->parent; parent != NULL; parent = parent->parent) {
         _global_state.current = parent;
-        Py_DECREF(self);
         return parent->stacklet_h;
     }
 
@@ -314,6 +313,8 @@ stacklet__post_switch(stacklet_handle h)
         /* the current threadlet has ended, the reference to current is updated in
          * stacklet__callback, right after the Python function has returned */
         self->stacklet_h = h;
+        /* refcount was incremented when the first switch happened, even it out */
+        Py_DECREF(self);
     } else {
         self->stacklet_h = origin->stacklet_h;
         origin->stacklet_h = h;
