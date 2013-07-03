@@ -294,7 +294,7 @@ stacklet__callback(stacklet_handle h, void *arg)
         return parent->stacklet_h;
     }
 
-    return origin->stacklet_h;
+    PyFatalError("Ran out of parents!");
 }
 
 
