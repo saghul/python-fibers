@@ -8,7 +8,7 @@ typedef struct {
     PyObject *value;
 } ThreadletGlobalState;
 
-static ThreadletGlobalState _global_state;
+static volatile ThreadletGlobalState _global_state;
 
 static PyObject* ts_curkey;
 
