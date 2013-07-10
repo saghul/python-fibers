@@ -28,6 +28,7 @@ typedef struct _threadlet {
     stacklet_thread_handle thread_h;
     stacklet_handle stacklet_h;
     Bool initialized;
+    Bool is_main;
     PyObject *target;
     PyObject *args;
     PyObject *kwargs;

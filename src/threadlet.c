@@ -45,6 +45,7 @@ threadlet_create_main(void)
     t_main->thread_h = stacklet_newthread();
     t_main->stacklet_h = NULL;
     t_main->initialized = True;
+    t_main->is_main = True;
     return t_main;
 }
 
@@ -233,6 +234,7 @@ Threadlet_tp_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
     self->thread_h = NULL;
     self->stacklet_h = NULL;
     self->initialized = False;
+    self->is_main = False;
     return (PyObject *)self;
 }
 
@@ -244,11 +246,13 @@ stacklet__callback(stacklet_handle h, void *arg)
     PyObject *result;
     PyObject *exc, *val, *tb;
     PyThreadState *tstate;
+    stacklet_handle parent_h;
 
     origin = _global_state.origin;
     self = _global_state.destination;
     origin->stacklet_h = h;
     _global_state.current = self;
+    parent_h = NULL;
 
     /* set current thread state before starting this new threadlet */
     tstate = PyThreadState_GET();
@@ -261,9 +265,6 @@ stacklet__callback(stacklet_handle h, void *arg)
     self->ts.exc_type = NULL;
     self->ts.exc_value = NULL;
     self->ts.exc_traceback = NULL;
-
-    /* keep this threadlet alive while it runs */
-    Py_INCREF(self);
 
     if (self->target) {
         result = PyObject_Call(self->target, self->args, self->kwargs);
@@ -290,11 +291,18 @@ stacklet__callback(stacklet_handle h, void *arg)
 
     /* this threadlet has finished, select the parent as the next one to be run  */
     for (parent = self->parent; parent != NULL; parent = parent->parent) {
-        _global_state.current = parent;
-        return parent->stacklet_h;
+        if (parent->stacklet_h != NULL && parent->stacklet_h != EMPTY_STACKLET_HANDLE) {
+            _global_state.current = parent;
+            /* the stacklet returned here will be switched to immediately, so reset it's 
+            * reference because it will be freed after the switch happens */
+            parent_h = parent->stacklet_h;
+            parent->stacklet_h = NULL;
+            return parent_h;
+        }
     }
 
-    PyFatalError("Ran out of parents!");
+    Py_FatalError("Ran out of parents!");
+    return NULL;
 }
 
 
@@ -309,12 +317,13 @@ stacklet__post_switch(stacklet_handle h)
     _global_state.destination = NULL;
     _global_state.value = NULL;
 
-    if (h == EMPTY_STACKLET_HANDLE) {
+    if (h == NULL) {
+        Py_FatalError("Stacklet memory error");
+        return NULL;
+    } else if (h == EMPTY_STACKLET_HANDLE) {
         /* the current threadlet has ended, the reference to current is updated in
          * stacklet__callback, right after the Python function has returned */
         self->stacklet_h = h;
-        /* refcount was incremented when the first switch happened, even it out */
-        Py_DECREF(self);
     } else {
         self->stacklet_h = origin->stacklet_h;
         origin->stacklet_h = h;
@@ -637,7 +646,14 @@ Threadlet_tp_clear(Threadlet *self)
 static void
 Threadlet_tp_dealloc(Threadlet *self)
 {
-    /* TODO: dealloc thread handle. when? */
+    if (self->stacklet_h != NULL && self->stacklet_h != EMPTY_STACKLET_HANDLE) {
+        stacklet_destroy(self->stacklet_h);
+        self->stacklet_h = NULL;
+    }
+    if (self->is_main) {
+        stacklet_deletethread(self->thread_h);
+        self->thread_h = NULL;
+    }
     if (self->weakreflist != NULL) {
         PyObject_ClearWeakRefs((PyObject *)self);
     }
