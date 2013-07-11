@@ -86,8 +86,8 @@ restart:
         }
 	assert(current->ts_dict == tstate->dict);
 
-	Py_INCREF(current);
 retry:
+	Py_INCREF(current);
 	previous = _global_state.current;
 	_global_state.current = current;
 
