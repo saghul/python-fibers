@@ -684,7 +684,7 @@ Threadlet_tp_methods[] = {
 static PyGetSetDef Threadlet_tp_getsets[] = {
     {"__dict__", (getter)Threadlet_dict_get, (setter)Threadlet_dict_set, "Instance dictionary", NULL},
     {"parent", (getter)Threadlet_parent_get, (setter)Threadlet_parent_set, "Threadlet parent or None if it's the main threadlet", NULL},
-    {"frame", (getter)Threadlet_frame_get, NULL, "Current top frame or None", NULL},
+    {"t_frame", (getter)Threadlet_frame_get, NULL, "Current top frame or None", NULL},
     {NULL}
 };
 
