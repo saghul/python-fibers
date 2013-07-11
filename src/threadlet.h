@@ -48,6 +48,15 @@ static PyTypeObject ThreadletType;
 #define STRINGIFY_HELPER(x) #x
 #define STRINGIFY(x) STRINGIFY_HELPER(x)
 
+#define ASSERT(x)                                                           \
+    do {                                                                    \
+        if (!(x)) {                                                         \
+            fprintf (stderr, "%s:%u: Assertion `" #x "' failed.\n",         \
+                     __FILE__, __LINE__);                                   \
+            abort();                                                        \
+        }                                                                   \
+    } while(0)                                                              \
+
 /* Add a type to a module */
 static int
 MyPyModule_AddType(PyObject *module, const char *name, PyTypeObject *type)

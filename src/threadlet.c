@@ -58,19 +58,25 @@ static Threadlet *
 update_current(void)
 {
 	Threadlet *current, *previous;
-	PyObject *exc, *val, *tb;
-	PyThreadState *tstate;
+	PyObject *exc, *val, *tb, *tstate_dict;
 
 restart:
 	/* save current exception */
 	PyErr_Fetch(&exc, &val, &tb);
 
 	/* get current threadlet from the active thread-state */
-	tstate = PyThreadState_GET();
-	if (tstate->dict && (current = (Threadlet *) PyDict_GetItem(tstate->dict, ts_curkey))) {
+	tstate_dict = PyThreadState_GetDict();
+        if (tstate_dict == NULL) {
+            if (!PyErr_Occurred()) {
+                PyErr_NoMemory();
+            }
+            return NULL;
+        }
+	current = (Threadlet *)PyDict_GetItem(tstate_dict, ts_curkey);
+	if (current) {
 	    /* found - remove it, to avoid keeping a ref */
 	    Py_INCREF(current);
-	    PyDict_DelItem(tstate->dict, ts_curkey);
+	    PyDict_DelItem(tstate_dict, ts_curkey);
 	} else {
             /* first time we see this thread-state, create main threadlet */
             current = threadlet_create_main();
@@ -81,32 +87,36 @@ restart:
                 return NULL;
 	    }
 	    if (_global_state.current == NULL) {
+	        /* First time a main threadlet is allocated in any thread */
 	        _global_state.current = current;
 	    }
         }
-	assert(current->ts_dict == tstate->dict);
+        ASSERT(current->ts_dict == tstate_dict);
 
 retry:
 	Py_INCREF(current);
 	previous = _global_state.current;
 	_global_state.current = current;
 
-        /* save previous as the current threadlet of its own (real) thread */
-        if (PyDict_SetItem(previous->ts_dict, ts_curkey, (PyObject*) previous) < 0) {
+        if (PyDict_GetItem(previous->ts_dict, ts_curkey) != previous) {
+            /* save previous as the current threadlet of its own (real) thread */
+            if (PyDict_SetItem(previous->ts_dict, ts_curkey, (PyObject*) previous) < 0) {
+                Py_DECREF(previous);
+                Py_DECREF(current);
+                Py_XDECREF(exc);
+                Py_XDECREF(val);
+                Py_XDECREF(tb);
+                return NULL;
+            }
             Py_DECREF(previous);
-            Py_DECREF(current);
-            Py_XDECREF(exc);
-            Py_XDECREF(val);
-            Py_XDECREF(tb);
-            return NULL;
         }
-        Py_DECREF(previous);
+        ASSERT(Py_REFCNT(previous) >= 1);
 
 	if (_global_state.current != current) {
             /* some Python code executed above and there was a thread switch,
              * so the global current points to some other threadlet again. We need to
              * delete ts_curkey and retry. */
-            PyDict_DelItem(tstate->dict, ts_curkey);
+            PyDict_DelItem(tstate_dict, ts_curkey);
             goto retry;
 	}
 
@@ -118,7 +128,7 @@ retry:
 
 	/* thread switch could happen during PyErr_Restore, in that
 	   case there's nothing to do except restart from scratch. */
-	if (_global_state.current->ts_dict != tstate->dict) {
+	if (_global_state.current->ts_dict != tstate_dict) {
             goto restart;
         }
 
@@ -129,7 +139,7 @@ retry:
 /*
  * sanity check, see if there is a current threadlet or create one
  */
-#define CHECK_STATE  ((_global_state.current && _global_state.current->ts_dict == PyThreadState_GET()->dict) || update_current())
+#define CHECK_STATE  ((_global_state.current && _global_state.current->ts_dict == PyThreadState_Get()->dict) || update_current())
 
 
 /*
@@ -255,7 +265,7 @@ stacklet__callback(stacklet_handle h, void *arg)
     parent_h = NULL;
 
     /* set current thread state before starting this new threadlet */
-    tstate = PyThreadState_GET();
+    tstate = PyThreadState_Get();
     tstate->frame = NULL;
     tstate->exc_type = NULL;
     tstate->exc_value = NULL;
@@ -344,7 +354,7 @@ do_switch(Threadlet *self, PyObject *value)
 
     /* save state */
     current = _global_state.current;
-    tstate = PyThreadState_GET();
+    tstate = PyThreadState_Get();
     current->ts.recursion_depth = tstate->recursion_depth;
     current->ts.frame = tstate->frame;
     current->ts.exc_type = tstate->exc_type;
@@ -366,7 +376,7 @@ do_switch(Threadlet *self, PyObject *value)
     result = stacklet__post_switch(stacklet_h);
 
     /* restore state */
-    tstate = PyThreadState_GET();
+    tstate = PyThreadState_Get();
     tstate->recursion_depth = current->ts.recursion_depth;
     tstate->frame = current->ts.frame;
     tstate->exc_type = current->ts.exc_type;
