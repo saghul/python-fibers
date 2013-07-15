@@ -1,31 +1,31 @@
 
-#include "threadlet.h"
+#include "fibers.h"
 
 typedef struct {
-    Threadlet *current;
-    Threadlet *origin;
-    Threadlet *destination;
+    Fiber *current;
+    Fiber *origin;
+    Fiber *destination;
     PyObject *value;
-} ThreadletGlobalState;
+} FiberGlobalState;
 
-static volatile ThreadletGlobalState _global_state;
+static volatile FiberGlobalState _global_state;
 
 static PyObject* ts_curkey;
 
-static PyObject* PyExc_ThreadletError;
-static PyObject* PyExc_ThreadletExit;
+static PyObject* PyExc_FiberError;
+static PyObject* PyExc_FiberExit;
 
 
 /*
- * Create main threadlet. The is always a main threadlet for a given (real) thread,
+ * Create main Fiber. There is always a main Fiber for a given (real) thread,
  * and it's parent is always NULL.
  */
-static Threadlet *
-threadlet_create_main(void)
+static Fiber *
+fiber_create_main(void)
 {
-    Threadlet *t_main;
+    Fiber *t_main;
     PyObject *dict = PyThreadState_GetDict();
-    PyTypeObject *cls = (PyTypeObject *)&ThreadletType;
+    PyTypeObject *cls = (PyTypeObject *)&FiberType;
 
     if (dict == NULL) {
         if (!PyErr_Occurred()) {
@@ -34,8 +34,8 @@ threadlet_create_main(void)
         return NULL;
     }
 
-    /* create the main threadlet for this thread */
-    t_main = (Threadlet *)cls->tp_new(cls, NULL, NULL);
+    /* create the main Fiber for this thread */
+    t_main = (Fiber *)cls->tp_new(cls, NULL, NULL);
     if (!t_main) {
         return NULL;
     }
@@ -51,20 +51,20 @@ threadlet_create_main(void)
 
 
 /*
- * Update the current threadlet reference on the current thread. The first time this
- * function is called on a given (real) thread, the main threadlet is created.
+ * Update the current Fiber reference on the current thread. The first time this
+ * function is called on a given (real) thread, the main Fiber is created.
  */
-static Threadlet *
+static Fiber *
 update_current(void)
 {
-	Threadlet *current, *previous;
+	Fiber *current, *previous;
 	PyObject *exc, *val, *tb, *tstate_dict;
 
 restart:
 	/* save current exception */
 	PyErr_Fetch(&exc, &val, &tb);
 
-	/* get current threadlet from the active thread-state */
+	/* get current Fiber from the active thread-state */
 	tstate_dict = PyThreadState_GetDict();
         if (tstate_dict == NULL) {
             if (!PyErr_Occurred()) {
@@ -72,14 +72,14 @@ restart:
             }
             return NULL;
         }
-	current = (Threadlet *)PyDict_GetItem(tstate_dict, ts_curkey);
+	current = (Fiber *)PyDict_GetItem(tstate_dict, ts_curkey);
 	if (current) {
 	    /* found - remove it, to avoid keeping a ref */
 	    Py_INCREF(current);
 	    PyDict_DelItem(tstate_dict, ts_curkey);
 	} else {
-            /* first time we see this thread-state, create main threadlet */
-            current = threadlet_create_main();
+            /* first time we see this thread-state, create main Fiber */
+            current = fiber_create_main();
             if (current == NULL) {
                 Py_XDECREF(exc);
                 Py_XDECREF(val);
@@ -87,7 +87,7 @@ restart:
                 return NULL;
 	    }
 	    if (_global_state.current == NULL) {
-	        /* First time a main threadlet is allocated in any thread */
+	        /* First time a main Fiber is allocated in any thread */
 	        _global_state.current = current;
 	    }
         }
@@ -99,7 +99,7 @@ retry:
 	_global_state.current = current;
 
         if (PyDict_GetItem(previous->ts_dict, ts_curkey) != (PyObject *)previous) {
-            /* save previous as the current threadlet of its own (real) thread */
+            /* save previous as the current Fiber of its own (real) thread */
             if (PyDict_SetItem(previous->ts_dict, ts_curkey, (PyObject*) previous) < 0) {
                 Py_DECREF(previous);
                 Py_DECREF(current);
@@ -114,7 +114,7 @@ retry:
 
 	if (_global_state.current != current) {
             /* some Python code executed above and there was a thread switch,
-             * so the global current points to some other threadlet again. We need to
+             * so the global current points to some other Fiber again. We need to
              * delete ts_curkey and retry. */
             PyDict_DelItem(tstate_dict, ts_curkey);
             goto retry;
@@ -137,16 +137,16 @@ retry:
 
 
 /*
- * sanity check, see if there is a current threadlet or create one
+ * sanity check, see if there is a current Fiber or create one
  */
 #define CHECK_STATE  ((_global_state.current && _global_state.current->ts_dict == PyThreadState_Get()->dict) || update_current())
 
 
 /*
- * Get current threadlet.
+ * Get current Fiber
  */
 static PyObject *
-threadlet_func_current(PyObject *obj)
+fiber_func_current(PyObject *obj)
 {
     UNUSED_ARG(obj);
 
@@ -159,12 +159,12 @@ threadlet_func_current(PyObject *obj)
 
 
 static int
-Threadlet_tp_init(Threadlet *self, PyObject *args, PyObject *kwargs)
+Fiber_tp_init(Fiber *self, PyObject *args, PyObject *kwargs)
 {
     static char *kwlist[] = {"target", "args", "kwargs", "parent", NULL};
 
     PyObject *target, *t_args, *t_kwargs;
-    Threadlet *parent;
+    Fiber *parent;
     target = t_args = t_kwargs = NULL;
     parent = NULL;
 
@@ -173,7 +173,7 @@ Threadlet_tp_init(Threadlet *self, PyObject *args, PyObject *kwargs)
         return -1;
     }
 
-    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|OOOO!:__init__", kwlist, &target, &t_args, &t_kwargs, &ThreadletType, &parent)) {
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, "|OOOO!:__init__", kwlist, &target, &t_args, &t_kwargs, &FiberType, &parent)) {
         return -1;
     }
 
@@ -231,9 +231,9 @@ Threadlet_tp_init(Threadlet *self, PyObject *args, PyObject *kwargs)
 
 
 static PyObject *
-Threadlet_tp_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
+Fiber_tp_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
-    Threadlet *self = (Threadlet *)PyType_GenericNew(type, args, kwargs);
+    Fiber *self = (Fiber *)PyType_GenericNew(type, args, kwargs);
     if (!self) {
         return NULL;
     }
@@ -252,7 +252,7 @@ Threadlet_tp_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 static stacklet_handle
 stacklet__callback(stacklet_handle h, void *arg)
 {
-    Threadlet *origin, *self, *parent;
+    Fiber *origin, *self, *parent;
     PyObject *result;
     PyObject *exc, *val, *tb;
     PyThreadState *tstate;
@@ -264,7 +264,7 @@ stacklet__callback(stacklet_handle h, void *arg)
     _global_state.current = self;
     parent_h = NULL;
 
-    /* set current thread state before starting this new threadlet */
+    /* set current thread state before starting this new Fiber */
     tstate = PyThreadState_Get();
     tstate->frame = NULL;
     tstate->exc_type = NULL;
@@ -283,8 +283,8 @@ stacklet__callback(stacklet_handle h, void *arg)
         Py_INCREF(Py_None);
     }
 
-    /* catch and ignore ThreadletExit exception */
-    if (result == NULL && PyErr_ExceptionMatches(PyExc_ThreadletExit)) {
+    /* catch and ignore FiberExit exception */
+    if (result == NULL && PyErr_ExceptionMatches(PyExc_FiberExit)) {
         PyErr_Fetch(&exc, &val, &tb);
         if (val == NULL) {
             val = Py_None;
@@ -299,7 +299,7 @@ stacklet__callback(stacklet_handle h, void *arg)
     _global_state.origin = origin;
     _global_state.destination = self;
 
-    /* this threadlet has finished, select the parent as the next one to be run  */
+    /* this Fiber has finished, select the parent as the next one to be run  */
     for (parent = self->parent; parent != NULL; parent = parent->parent) {
         if (parent->stacklet_h != NULL && parent->stacklet_h != EMPTY_STACKLET_HANDLE) {
             _global_state.current = parent;
@@ -319,8 +319,8 @@ stacklet__callback(stacklet_handle h, void *arg)
 static PyObject *
 stacklet__post_switch(stacklet_handle h)
 {
-    Threadlet *origin = _global_state.origin;
-    Threadlet *self = _global_state.destination;
+    Fiber *origin = _global_state.origin;
+    Fiber *self = _global_state.destination;
     PyObject *result = _global_state.value;
 
     _global_state.origin = NULL;
@@ -331,7 +331,7 @@ stacklet__post_switch(stacklet_handle h)
         Py_FatalError("Stacklet memory error");
         return NULL;
     } else if (h == EMPTY_STACKLET_HANDLE) {
-        /* the current threadlet has ended, the reference to current is updated in
+        /* the current Fiber has ended, the reference to current is updated in
          * stacklet__callback, right after the Python function has returned */
         self->stacklet_h = h;
     } else {
@@ -345,11 +345,11 @@ stacklet__post_switch(stacklet_handle h)
 
 
 static PyObject *
-do_switch(Threadlet *self, PyObject *value)
+do_switch(Fiber *self, PyObject *value)
 {
     PyThreadState *tstate;
     stacklet_handle stacklet_h;
-    Threadlet *current;
+    Fiber *current;
     PyObject *result;
 
     /* save state */
@@ -394,9 +394,9 @@ do_switch(Threadlet *self, PyObject *value)
 
 
 static PyObject *
-Threadlet_func_switch(Threadlet *self, PyObject *args)
+Fiber_func_switch(Fiber *self, PyObject *args)
 {
-    Threadlet *current;
+    Fiber *current;
     PyObject *value = Py_None;
 
     if (!PyArg_ParseTuple(args, "|O:switch", &value)) {
@@ -409,22 +409,22 @@ Threadlet_func_switch(Threadlet *self, PyObject *args)
 
     current = _global_state.current;
     if (self == current) {
-        PyErr_SetString(PyExc_RuntimeError, "cannot switch from a threadlet to itself");
+        PyErr_SetString(PyExc_RuntimeError, "cannot switch from a Fiber to itself");
         return NULL;
     }
 
     if (self->stacklet_h == EMPTY_STACKLET_HANDLE) {
-        PyErr_SetString(PyExc_ThreadletError, "threadlet has ended");
+        PyErr_SetString(PyExc_FiberError, "Fiber has ended");
         return NULL;
     }
 
     if (self->thread_h != current->thread_h) {
-        PyErr_SetString(PyExc_ThreadletError, "cannot switch to a threadlet on a different thread");
+        PyErr_SetString(PyExc_FiberError, "cannot switch to a Fiber on a different thread");
         return NULL;
     }
 
     if (self->stacklet_h == NULL && value != Py_None) {
-        PyErr_SetString(PyExc_ValueError, "cannot specify a value when the threadlet wasn't started");
+        PyErr_SetString(PyExc_ValueError, "cannot specify a value when the Fiber wasn't started");
         return NULL;
     }
     Py_INCREF(value);
@@ -434,12 +434,12 @@ Threadlet_func_switch(Threadlet *self, PyObject *args)
 
 
 static PyObject *
-Threadlet_func_throw(Threadlet *self, PyObject *args)
+Fiber_func_throw(Fiber *self, PyObject *args)
 {
-    Threadlet *current;
+    Fiber *current;
     PyObject *typ, *val, *tb;
 
-    typ = PyExc_ThreadletExit;
+    typ = PyExc_FiberExit;
     val = tb = NULL;
 
     if (!PyArg_ParseTuple(args, "|OOO:throw", &typ, &val, &tb)) {
@@ -484,17 +484,17 @@ Threadlet_func_throw(Threadlet *self, PyObject *args)
 
     current = _global_state.current;
     if (self == current) {
-        PyErr_SetString(PyExc_RuntimeError, "cannot throw from a threadlet to itself");
+        PyErr_SetString(PyExc_RuntimeError, "cannot throw from a Fiber to itself");
         goto error;
     }
 
     if (self->stacklet_h == EMPTY_STACKLET_HANDLE) {
-        PyErr_SetString(PyExc_ThreadletError, "threadlet has ended");
+        PyErr_SetString(PyExc_FiberError, "Fiber has ended");
         goto error;
     }
 
     if (self->thread_h != current->thread_h) {
-        PyErr_SetString(PyExc_ThreadletError, "cannot switch to a threadlet on a different thread");
+        PyErr_SetString(PyExc_FiberError, "cannot switch to a Fiber on a different thread");
         return NULL;
     }
 
@@ -513,14 +513,14 @@ error:
 
 
 static PyObject *
-Threadlet_func_is_alive(Threadlet *self)
+Fiber_func_is_alive(Fiber *self)
 {
     return PyBool_FromLong(self->stacklet_h != EMPTY_STACKLET_HANDLE);
 }
 
 
 static PyObject *
-Threadlet_func_getstate(Threadlet *self)
+Fiber_func_getstate(Fiber *self)
 {
     PyErr_Format(PyExc_TypeError, "cannot serialize '%s' object", Py_TYPE(self)->tp_name);
     return NULL;
@@ -528,7 +528,7 @@ Threadlet_func_getstate(Threadlet *self)
 
 
 static PyObject *
-Threadlet_dict_get(Threadlet *self, void* c)
+Fiber_dict_get(Fiber *self, void* c)
 {
     UNUSED_ARG(c);
 
@@ -544,7 +544,7 @@ Threadlet_dict_get(Threadlet *self, void* c)
 
 
 static int
-Threadlet_dict_set(Threadlet *self, PyObject* val, void* c)
+Fiber_dict_set(Fiber *self, PyObject* val, void* c)
 {
     PyObject* tmp;
     UNUSED_ARG(c);
@@ -566,7 +566,7 @@ Threadlet_dict_set(Threadlet *self, PyObject* val, void* c)
 
 
 static PyObject *
-Threadlet_parent_get(Threadlet *self, void* c)
+Fiber_parent_get(Fiber *self, void* c)
 {
 	PyObject *result;
 	UNUSED_ARG(c);
@@ -582,9 +582,9 @@ Threadlet_parent_get(Threadlet *self, void* c)
 
 
 static int
-Threadlet_parent_set(Threadlet *self, PyObject *val, void* c)
+Fiber_parent_set(Fiber *self, PyObject *val, void* c)
 {
-    Threadlet *p, *nparent;
+    Fiber *p, *nparent;
     UNUSED_ARG(c);
 
     if (val == NULL) {
@@ -592,12 +592,12 @@ Threadlet_parent_set(Threadlet *self, PyObject *val, void* c)
         return -1;
     }
 
-    if (!PyObject_TypeCheck(val, &ThreadletType)) {
-        PyErr_SetString(PyExc_TypeError, "parent must be a threadlet");
+    if (!PyObject_TypeCheck(val, &FiberType)) {
+        PyErr_SetString(PyExc_TypeError, "parent must be a Fiber");
         return -1;
     }
 
-    nparent = (Threadlet *)val;
+    nparent = (Fiber *)val;
     for (p = nparent; p != NULL; p = p->parent) {
         if (p == self) {
             PyErr_SetString(PyExc_ValueError, "cyclic parent chain");
@@ -625,7 +625,7 @@ Threadlet_parent_set(Threadlet *self, PyObject *val, void* c)
 
 
 static PyObject *
-Threadlet_frame_get(Threadlet *self, void* c)
+Fiber_frame_get(Fiber *self, void* c)
 {
 	PyObject *result;
 	UNUSED_ARG(c);
@@ -641,7 +641,7 @@ Threadlet_frame_get(Threadlet *self, void* c)
 
 
 static int
-Threadlet_tp_traverse(Threadlet *self, visitproc visit, void *arg)
+Fiber_tp_traverse(Fiber *self, visitproc visit, void *arg)
 {
     Py_VISIT(self->dict);
     Py_VISIT(self->ts_dict);
@@ -651,7 +651,7 @@ Threadlet_tp_traverse(Threadlet *self, visitproc visit, void *arg)
 
 
 static int
-Threadlet_tp_clear(Threadlet *self)
+Fiber_tp_clear(Fiber *self)
 {
     Py_CLEAR(self->dict);
     Py_CLEAR(self->ts_dict);
@@ -661,7 +661,7 @@ Threadlet_tp_clear(Threadlet *self)
 
 
 static void
-Threadlet_tp_dealloc(Threadlet *self)
+Fiber_tp_dealloc(Fiber *self)
 {
     if (self->stacklet_h != NULL && self->stacklet_h != EMPTY_STACKLET_HANDLE) {
         stacklet_destroy(self->stacklet_h);
@@ -680,29 +680,29 @@ Threadlet_tp_dealloc(Threadlet *self)
 
 
 static PyMethodDef
-Threadlet_tp_methods[] = {
-    { "is_alive", (PyCFunction)Threadlet_func_is_alive, METH_NOARGS, "Returns true if the threadlet can still be switched to" },
-    { "switch", (PyCFunction)Threadlet_func_switch, METH_VARARGS, "Switch execution to this threadlet" },
-    { "throw", (PyCFunction)Threadlet_func_throw, METH_VARARGS, "Switch execution and raise the specified exception to this threadlet" },
-    { "__getstate__", (PyCFunction)Threadlet_func_getstate, METH_NOARGS, "Serialize the threadlet object, not really" },
+Fiber_tp_methods[] = {
+    { "is_alive", (PyCFunction)Fiber_func_is_alive, METH_NOARGS, "Returns true if the Fiber can still be switched to" },
+    { "switch", (PyCFunction)Fiber_func_switch, METH_VARARGS, "Switch execution to this Fiber" },
+    { "throw", (PyCFunction)Fiber_func_throw, METH_VARARGS, "Switch execution and raise the specified exception to this Fiber" },
+    { "__getstate__", (PyCFunction)Fiber_func_getstate, METH_NOARGS, "Serialize the Fiber object, not really" },
     { NULL }
 };
 
 
-static PyGetSetDef Threadlet_tp_getsets[] = {
-    {"__dict__", (getter)Threadlet_dict_get, (setter)Threadlet_dict_set, "Instance dictionary", NULL},
-    {"parent", (getter)Threadlet_parent_get, (setter)Threadlet_parent_set, "Threadlet parent or None if it's the main threadlet", NULL},
-    {"t_frame", (getter)Threadlet_frame_get, NULL, "Current top frame or None", NULL},
+static PyGetSetDef Fiber_tp_getsets[] = {
+    {"__dict__", (getter)Fiber_dict_get, (setter)Fiber_dict_set, "Instance dictionary", NULL},
+    {"parent", (getter)Fiber_parent_get, (setter)Fiber_parent_set, "Fiber parent or None if it's the main Fiber", NULL},
+    {"t_frame", (getter)Fiber_frame_get, NULL, "Current top frame or None", NULL},
     {NULL}
 };
 
 
-static PyTypeObject ThreadletType = {
+static PyTypeObject FiberType = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "threadlet.Threadlet",                                          /*tp_name*/
-    sizeof(Threadlet),                                              /*tp_basicsize*/
+    "fibers.Fiber",                                                 /*tp_name*/
+    sizeof(Fiber),                                                  /*tp_basicsize*/
     0,                                                              /*tp_itemsize*/
-    (destructor)Threadlet_tp_dealloc,                               /*tp_dealloc*/
+    (destructor)Fiber_tp_dealloc,                                   /*tp_dealloc*/
     0,                                                              /*tp_print*/
     0,                                                              /*tp_getattr*/
     0,                                                              /*tp_setattr*/
@@ -719,84 +719,84 @@ static PyTypeObject ThreadletType = {
     0,                                                              /*tp_as_buffer*/
     Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_HAVE_GC,  /*tp_flags*/
     0,                                                              /*tp_doc*/
-    (traverseproc)Threadlet_tp_traverse,                            /*tp_traverse*/
-    (inquiry)Threadlet_tp_clear,                                    /*tp_clear*/
+    (traverseproc)Fiber_tp_traverse,                                /*tp_traverse*/
+    (inquiry)Fiber_tp_clear,                                        /*tp_clear*/
     0,                                                              /*tp_richcompare*/
-    offsetof(Threadlet, weakreflist),	                            /*tp_weaklistoffset*/
+    offsetof(Fiber, weakreflist),	                            /*tp_weaklistoffset*/
     0,                                                              /*tp_iter*/
     0,                                                              /*tp_iternext*/
-    Threadlet_tp_methods,                                           /*tp_methods*/
+    Fiber_tp_methods,                                               /*tp_methods*/
     0,                                                              /*tp_members*/
-    Threadlet_tp_getsets,                                           /*tp_getsets*/
+    Fiber_tp_getsets,                                               /*tp_getsets*/
     0,                                                              /*tp_base*/
     0,                                                              /*tp_dict*/
     0,                                                              /*tp_descr_get*/
     0,                                                              /*tp_descr_set*/
-    offsetof(Threadlet, dict),                                      /*tp_dictoffset*/
-    (initproc)Threadlet_tp_init,                                    /*tp_init*/
+    offsetof(Fiber, dict),                                          /*tp_dictoffset*/
+    (initproc)Fiber_tp_init,                                        /*tp_init*/
     0,                                                              /*tp_alloc*/
-    Threadlet_tp_new,                                               /*tp_new*/
+    Fiber_tp_new,                                                   /*tp_new*/
 };
 
 
 static PyMethodDef
-threadlet_methods[] = {
-    { "current", (PyCFunction)threadlet_func_current, METH_NOARGS, "Get the current threadlet" },
+fibers_methods[] = {
+    { "current", (PyCFunction)fiber_func_current, METH_NOARGS, "Get the current Fiber" },
     { NULL }
 };
 
 
 #if PY_MAJOR_VERSION >= 3
-static PyModuleDef threadlet_module = {
+static PyModuleDef fibers_module = {
     PyModuleDef_HEAD_INIT,
-    "threadlet",              /*m_name*/
+    "fibers",                 /*m_name*/
     NULL,                     /*m_doc*/
     -1,                       /*m_size*/
-    threadlet_methods  ,      /*m_methods*/
+    fibers_methods  ,         /*m_methods*/
 };
 #endif
 
 
 /* Module */
 PyObject *
-init_threadlet(void)
+init_fibers(void)
 {
-    PyObject *threadlet;
+    PyObject *fibers;
 
     /* Main module */
 #if PY_MAJOR_VERSION >= 3
-    threadlet = PyModule_Create(&threadlet_module);
+    fibers = PyModule_Create(&fibers_module);
 #else
-    threadlet = Py_InitModule("threadlet", threadlet_methods);
+    fibers = Py_InitModule("fibers", fibers_methods);
 #endif
 
     /* keys for per-thread dictionary */
 #if PY_MAJOR_VERSION >= 3
-    ts_curkey = PyUnicode_InternFromString("__threadlet_ts_curkey");
+    ts_curkey = PyUnicode_InternFromString("__fibers_current");
 #else
-    ts_curkey = PyString_InternFromString("__threadlet_ts_curkey");
+    ts_curkey = PyString_InternFromString("__fibers_current");
 #endif
     if (ts_curkey == NULL) {
         goto fail;
     }
 
     /* Exceptions */
-    PyExc_ThreadletError = PyErr_NewException("threadlet.error", NULL, NULL);
-    MyPyModule_AddType(threadlet, "error", (PyTypeObject *)PyExc_ThreadletError);
-    PyExc_ThreadletExit = PyErr_NewException("threadlet.ThreadletExit", PyExc_BaseException, NULL);
-    MyPyModule_AddType(threadlet, "ThreadletExit", (PyTypeObject *)PyExc_ThreadletExit);
+    PyExc_FiberError = PyErr_NewException("fibers.error", NULL, NULL);
+    MyPyModule_AddType(fibers, "error", (PyTypeObject *)PyExc_FiberError);
+    PyExc_FiberExit = PyErr_NewException("fibers.FiberExit", PyExc_BaseException, NULL);
+    MyPyModule_AddType(fibers, "FiberExit", (PyTypeObject *)PyExc_FiberExit);
 
     /* Types */
-    MyPyModule_AddType(threadlet, "Threadlet", &ThreadletType);
+    MyPyModule_AddType(fibers, "Fiber", &FiberType);
 
     /* Module version (the MODULE_VERSION macro is defined by setup.py) */
-    PyModule_AddStringConstant(threadlet, "__version__", STRINGIFY(MODULE_VERSION));
+    PyModule_AddStringConstant(fibers, "__version__", STRINGIFY(MODULE_VERSION));
 
-    return threadlet;
+    return fibers;
 
 fail:
 #if PY_MAJOR_VERSION >= 3
-    Py_DECREF(threadlet);
+    Py_DECREF(fibers);
 #endif
     return NULL;
 
@@ -805,15 +805,15 @@ fail:
 
 #if PY_MAJOR_VERSION >= 3
 PyMODINIT_FUNC
-PyInit_threadlet(void)
+PyInit_fibers(void)
 {
-    return init_threadlet();
+    return init_fibers();
 }
 #else
 PyMODINIT_FUNC
-initthreadlet(void)
+initfibers(void)
 {
-    init_threadlet();
+    init_fibers();
 }
 #endif
 

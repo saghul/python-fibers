@@ -8,11 +8,11 @@ except ImportError:
 
 __version__ = "0.0.1"
 
-setup(name             = "threadlet",
+setup(name             = "fibers",
       version          = __version__,
       author           = "Saúl Ibarra Corretgé",
       author_email     = "saghul@gmail.com",
-      url              = "http://github.com/saghul/python-threadlet",
+      url              = "http://github.com/saghul/python-fibers",
       description      = "TODO",
       #long_description = open("README.rst").read(),
       platforms        = ["POSIX", "Microsoft Windows"],
@@ -32,8 +32,8 @@ setup(name             = "threadlet",
           "Programming Language :: Python :: 3.2",
           "Programming Language :: Python :: 3.3"
       ],
-      ext_modules  = [Extension('threadlet',
-                                sources = ['src/stacklet.c', 'src/threadlet.c'],
+      ext_modules  = [Extension('fibers',
+                                sources = ['src/stacklet.c', 'src/fibers.c'],
                                 define_macros=[('MODULE_VERSION', __version__)],
                                )]
      )

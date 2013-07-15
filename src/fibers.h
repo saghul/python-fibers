@@ -1,5 +1,5 @@
-#ifndef PYTHREADLET_H
-#define PYTHREADLET_H
+#ifndef PYFIBERS_H
+#define PYFIBERS_H
 
 /* python */
 #define PY_SSIZE_T_CLEAN
@@ -19,12 +19,12 @@ typedef int Bool;
 #define UNUSED_ARG(arg)  (void)arg
 
 /* Python types */
-typedef struct _threadlet {
+typedef struct _fiber {
     PyObject_HEAD
     PyObject *ts_dict;
     PyObject *dict;
     PyObject *weakreflist;
-    struct _threadlet *parent;
+    struct _fiber *parent;
     stacklet_thread_handle thread_h;
     stacklet_handle stacklet_h;
     Bool initialized;
@@ -39,9 +39,9 @@ typedef struct _threadlet {
         PyObject *exc_value;
         PyObject *exc_traceback;
     } ts;
-} Threadlet;
+} Fiber;
 
-static PyTypeObject ThreadletType;
+static PyTypeObject FiberType;
 
 
 /* Some helper stuff */
