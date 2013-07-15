@@ -513,6 +513,13 @@ error:
 
 
 static PyObject *
+Threadlet_func_is_alive(Threadlet *self)
+{
+    return PyBool_FromLong(self->stacklet_h != EMPTY_STACKLET_HANDLE);
+}
+
+
+static PyObject *
 Threadlet_func_getstate(Threadlet *self)
 {
     PyErr_Format(PyExc_TypeError, "cannot serialize '%s' object", Py_TYPE(self)->tp_name);
@@ -674,6 +681,7 @@ Threadlet_tp_dealloc(Threadlet *self)
 
 static PyMethodDef
 Threadlet_tp_methods[] = {
+    { "is_alive", (PyCFunction)Threadlet_func_is_alive, METH_NOARGS, "Returns true if the threadlet can still be switched to" },
     { "switch", (PyCFunction)Threadlet_func_switch, METH_VARARGS, "Switch execution to this threadlet" },
     { "throw", (PyCFunction)Threadlet_func_throw, METH_VARARGS, "Switch execution and raise the specified exception to this threadlet" },
     { "__getstate__", (PyCFunction)Threadlet_func_getstate, METH_NOARGS, "Serialize the threadlet object, not really" },
