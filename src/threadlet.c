@@ -98,7 +98,7 @@ retry:
 	previous = _global_state.current;
 	_global_state.current = current;
 
-        if (PyDict_GetItem(previous->ts_dict, ts_curkey) != previous) {
+        if (PyDict_GetItem(previous->ts_dict, ts_curkey) != (PyObject *)previous) {
             /* save previous as the current threadlet of its own (real) thread */
             if (PyDict_SetItem(previous->ts_dict, ts_curkey, (PyObject*) previous) < 0) {
                 Py_DECREF(previous);
