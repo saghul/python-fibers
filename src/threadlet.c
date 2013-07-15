@@ -146,7 +146,7 @@ retry:
  * Get current threadlet.
  */
 static PyObject *
-threadlet_func_get_current(PyObject *obj)
+threadlet_func_current(PyObject *obj)
 {
     UNUSED_ARG(obj);
 
@@ -741,7 +741,7 @@ static PyTypeObject ThreadletType = {
 
 static PyMethodDef
 threadlet_methods[] = {
-    { "get_current", (PyCFunction)threadlet_func_get_current, METH_NOARGS, "Get the current threadlet" },
+    { "current", (PyCFunction)threadlet_func_current, METH_NOARGS, "Get the current threadlet" },
     { NULL }
 };
 
