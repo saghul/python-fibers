@@ -253,13 +253,14 @@ static stacklet_handle
 stacklet__callback(stacklet_handle h, void *arg)
 {
     Fiber *origin, *self, *parent;
-    PyObject *result;
-    PyObject *exc, *val, *tb;
+    PyObject *result, *value, *exc, *val, *tb;
     PyThreadState *tstate;
     stacklet_handle parent_h;
 
     origin = _global_state.origin;
     self = _global_state.destination;
+    value = _global_state.value;
+
     origin->stacklet_h = h;
     _global_state.current = self;
     parent_h = NULL;
@@ -276,7 +277,11 @@ stacklet__callback(stacklet_handle h, void *arg)
     self->ts.exc_value = NULL;
     self->ts.exc_traceback = NULL;
 
-    if (self->target) {
+    if (value == NULL) {
+        /* pending exception, user called throw on a non-started Fiber,
+         * propagate to parent */
+        result = NULL;
+    } else if (self->target) {
         result = PyObject_Call(self->target, self->args, self->kwargs);
     } else {
         result = Py_None;
