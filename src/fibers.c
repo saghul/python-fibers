@@ -643,6 +643,9 @@ Fiber_frame_get(Fiber *self, void* c)
 static int
 Fiber_tp_traverse(Fiber *self, visitproc visit, void *arg)
 {
+    Py_VISIT(self->target);
+    Py_VISIT(self->args);
+    Py_VISIT(self->kwargs);
     Py_VISIT(self->dict);
     Py_VISIT(self->ts_dict);
     Py_VISIT(self->parent);
@@ -653,6 +656,9 @@ Fiber_tp_traverse(Fiber *self, visitproc visit, void *arg)
 static int
 Fiber_tp_clear(Fiber *self)
 {
+    Py_CLEAR(self->target);
+    Py_CLEAR(self->args);
+    Py_CLEAR(self->kwargs);
     Py_CLEAR(self->dict);
     Py_CLEAR(self->ts_dict);
     Py_CLEAR(self->parent);
