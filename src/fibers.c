@@ -263,7 +263,6 @@ stacklet__callback(stacklet_handle h, void *arg)
 
     origin->stacklet_h = h;
     _global_state.current = self;
-    parent_h = NULL;
 
     /* set current thread state before starting this new Fiber */
     tstate = PyThreadState_Get();
@@ -305,19 +304,20 @@ stacklet__callback(stacklet_handle h, void *arg)
     _global_state.destination = self;
 
     /* this Fiber has finished, select the parent as the next one to be run  */
+    parent_h = NULL;
     for (parent = self->parent; parent != NULL; parent = parent->parent) {
         if (parent->stacklet_h != NULL && parent->stacklet_h != EMPTY_STACKLET_HANDLE) {
             _global_state.current = parent;
             /* the stacklet returned here will be switched to immediately, so reset it's 
-            * reference because it will be freed after the switch happens */
+             * reference because it will be freed after the switch happens */
             parent_h = parent->stacklet_h;
             parent->stacklet_h = NULL;
-            return parent_h;
+            break;
         }
     }
 
-    Py_FatalError("Ran out of parents!");
-    return NULL;
+    ASSERT(parent_h);
+    return parent_h;
 }
 
 
