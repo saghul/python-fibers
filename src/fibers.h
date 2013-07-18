@@ -48,6 +48,12 @@ static PyTypeObject FiberType;
 #define STRINGIFY_HELPER(x) #x
 #define STRINGIFY(x) STRINGIFY_HELPER(x)
 
+#ifdef _MSC_VER
+    #define INLINE __inline
+#else
+    #define INLINE inline
+#endif
+
 #define ASSERT(x)                                                           \
     do {                                                                    \
         if (!(x)) {                                                         \
@@ -56,6 +62,7 @@ static PyTypeObject FiberType;
             abort();                                                        \
         }                                                                   \
     } while(0)                                                              \
+
 
 /* Add a type to a module */
 static int

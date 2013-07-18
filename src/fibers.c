@@ -321,7 +321,7 @@ stacklet__callback(stacklet_handle h, void *arg)
 }
 
 
-static PyObject *
+static INLINE PyObject *
 stacklet__post_switch(stacklet_handle h)
 {
     Fiber *origin = _global_state.origin;
