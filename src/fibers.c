@@ -363,8 +363,6 @@ do_switch(Fiber *self, PyObject *value)
     _global_state.destination = self;
     _global_state.value = value;
 
-    Py_INCREF(current);
-
     if (self->stacklet_h == NULL) {
         stacklet_h = stacklet_new(self->thread_h, stacklet__callback, NULL);
     } else {
@@ -384,8 +382,6 @@ do_switch(Fiber *self, PyObject *value)
     current->ts.exc_type = NULL;
     current->ts.exc_value = NULL;
     current->ts.exc_traceback = NULL;
-
-    Py_DECREF(current);
 
     return result;
 }
