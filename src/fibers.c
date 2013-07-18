@@ -252,10 +252,10 @@ Fiber_tp_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 static stacklet_handle
 stacklet__callback(stacklet_handle h, void *arg)
 {
-    Fiber *origin, *self, *parent;
+    Fiber *origin, *self, *target;
     PyObject *result, *value, *exc, *val, *tb;
     PyThreadState *tstate;
-    stacklet_handle parent_h;
+    stacklet_handle target_h;
 
     origin = _global_state.origin;
     self = _global_state.destination;
@@ -299,25 +299,25 @@ stacklet__callback(stacklet_handle h, void *arg)
         Py_XDECREF(tb);
     }
 
-    _global_state.value = result;
-    _global_state.origin = origin;
-    _global_state.destination = self;
-
     /* this Fiber has finished, select the parent as the next one to be run  */
-    parent_h = NULL;
-    for (parent = self->parent; parent != NULL; parent = parent->parent) {
-        if (parent->stacklet_h != NULL && parent->stacklet_h != EMPTY_STACKLET_HANDLE) {
-            _global_state.current = parent;
+    target_h = NULL;
+    target = self->parent;
+    while(target) {
+        if (target->stacklet_h && target->stacklet_h != EMPTY_STACKLET_HANDLE) {
+            _global_state.value = result;
+            _global_state.origin = self;
+            _global_state.destination = target;
             /* the stacklet returned here will be switched to immediately, so reset it's 
              * reference because it will be freed after the switch happens */
-            parent_h = parent->stacklet_h;
-            parent->stacklet_h = NULL;
+            target_h = target->stacklet_h;
+            target->stacklet_h = NULL;
             break;
         }
+        target = target->parent;
     }
 
-    ASSERT(parent_h);
-    return parent_h;
+    ASSERT(target_h);
+    return target_h;
 }
 
 
@@ -328,22 +328,15 @@ stacklet__post_switch(stacklet_handle h)
     Fiber *self = _global_state.destination;
     PyObject *result = _global_state.value;
 
+    ASSERT(h);
+
     _global_state.origin = NULL;
     _global_state.destination = NULL;
     _global_state.value = NULL;
 
-    if (h == NULL) {
-        Py_FatalError("Stacklet memory error");
-        return NULL;
-    } else if (h == EMPTY_STACKLET_HANDLE) {
-        /* the current Fiber has ended, the reference to current is updated in
-         * stacklet__callback, right after the Python function has returned */
-        self->stacklet_h = h;
-    } else {
-        self->stacklet_h = origin->stacklet_h;
-        origin->stacklet_h = h;
-        _global_state.current = self;
-    }
+    self->stacklet_h = origin->stacklet_h;
+    origin->stacklet_h = h;
+    _global_state.current = self;
 
     return result;
 }
