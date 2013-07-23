@@ -5,9 +5,17 @@ try:
 except ImportError:
     from distutils.core import setup, Extension
 from glob import glob
+import sys
 
 
 __version__ = "0.0.1"
+
+if sys.platform == 'win32' and '32 bit' in sys.version:
+    extra_objects = ['src/switch_x86_msvc.obj']
+elif sys.platform == 'win32' and '64 bit' in sys.version:
+    extra_objects = ['src/switch_x64_msvc.obj']
+else:
+    extra_objects = []
 
 setup(name             = "fibers",
       version          = __version__,
@@ -35,6 +43,7 @@ setup(name             = "fibers",
       ],
       ext_modules  = [Extension('fibers',
                                 sources = glob('src/*.c'),
+                                extra_objects=extra_objects,
                                 define_macros=[('MODULE_VERSION', __version__)],
                                )]
      )
