@@ -1,0 +1,9 @@
+
+# Generate object file for 32 bit Windows
+call "C:\Program Files\Microsoft Visual Studio 9.0\VC\vcvarsall.bat" x86
+ml /nologo /c /Fo src\switch_x86_msvc.obj src\switch_x86_msvc.asm
+
+# Generate object file for 64 bit Windows
+call "C:\Program Filesi (x86)\Microsoft Visual Studio 9.0\VC\vcvarsall.bat" amd64
+ml64 /nologo /c /Fo src\switch_x64_msvc.obj src\switch_x64_msvc.asm
+
