@@ -146,7 +146,7 @@ retry:
  * Get current Fiber
  */
 static PyObject *
-fiber_func_current(PyObject *obj)
+fibers_func_current(PyObject *obj)
 {
     UNUSED_ARG(obj);
 
@@ -673,6 +673,7 @@ Fiber_tp_dealloc(Fiber *self)
 
 static PyMethodDef
 Fiber_tp_methods[] = {
+    { "current", (PyCFunction)fibers_func_current, METH_CLASS|METH_NOARGS, "Returns the current Fiber" },
     { "is_alive", (PyCFunction)Fiber_func_is_alive, METH_NOARGS, "Returns true if the Fiber can still be switched to" },
     { "switch", (PyCFunction)Fiber_func_switch, METH_VARARGS, "Switch execution to this Fiber" },
     { "throw", (PyCFunction)Fiber_func_throw, METH_VARARGS, "Switch execution and raise the specified exception to this Fiber" },
@@ -732,7 +733,7 @@ static PyTypeObject FiberType = {
 
 static PyMethodDef
 fibers_methods[] = {
-    { "current", (PyCFunction)fiber_func_current, METH_NOARGS, "Get the current Fiber" },
+    { "current", (PyCFunction)fibers_func_current, METH_NOARGS, "Get the current Fiber" },
     { NULL }
 };
 
