@@ -2,8 +2,8 @@
  * this declared in an .asm file
  */
 extern void *slp_switch_raw(void *(*save_state)(void*, void*),
-                            void *(*restore_state)(void*, void*),
-                            void *extra);
+                        void *(*restore_state)(void*, void*),
+                        void *extra);
 
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>

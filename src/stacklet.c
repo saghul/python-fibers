@@ -1,27 +1,81 @@
-
 /********** A really minimal coroutine package for C **********
- * By Armin Rigo (slightly modified by saghul)
+ * By Armin Rigo
  */
 
+#include "stacklet.h"
+
+#include <stddef.h>
 #include <assert.h>
 #include <string.h>
 
-#include "stacklet.h"
+/************************************************************
+ * platform specific code
+ */
+
+/* The default stack direction is downwards, 0, but platforms
+ * can redefine it to upwards growing, 1.
+ */
+#define STACK_DIRECTION 0   
+
 #include "slp_platformselect.h"
 
-
-void *(*_stacklet_switchstack)(void*(*)(void*, void*),
-                               void*(*)(void*, void*),
-                               void*) = NULL;
-
-void (*_stacklet_initialstub)(struct stacklet_thread_s *,
-                              stacklet_run_fn,
-                              void *) = NULL;
-
+#if STACK_DIRECTION != 0
+#  error "review this whole code, which depends on STACK_DIRECTION==0 so far"
+#endif
 
 /************************************************************/
 
-static void g_save(struct stacklet_s* g, char* stop)
+/* #define DEBUG_DUMP */
+
+#ifdef DEBUG_DUMP
+#include <stdio.h>
+#endif
+
+/************************************************************/
+
+struct stacklet_s {
+    /* The portion of the real stack claimed by this paused tealet. */
+    char *stack_start;                /* the "near" end of the stack */
+    char *stack_stop;                 /* the "far" end of the stack */
+
+    /* The amount that has been saved away so far, just after this struct.
+     * There is enough allocated space for 'stack_stop - stack_start'
+     * bytes.
+     */
+    ptrdiff_t stack_saved;            /* the amount saved */
+
+    /* Internally, some stacklets are arranged in a list, to handle lazy
+     * saving of stacks: if the stacklet has a partially unsaved stack,
+     * this points to the next stacklet with a partially unsaved stack,
+     * creating a linked list with each stacklet's stack_stop higher
+     * than the previous one.  The last entry in the list is always the
+     * main stack.
+     */
+    struct stacklet_s *stack_prev;
+
+    stacklet_thread_handle stack_thrd;  /* the thread where the stacklet is */
+};
+
+void *(*_stacklet_switchstack)(void*(*)(void*, void*),
+                               void*(*)(void*, void*), void*) = NULL;
+void (*_stacklet_initialstub)(struct stacklet_thread_s *,
+                              stacklet_run_fn, void *) = NULL;
+
+struct stacklet_thread_s {
+    struct stacklet_s *g_stack_chain_head;  /* NULL <=> running main */
+    char *g_current_stack_stop;
+    char *g_current_stack_marker;
+    struct stacklet_s *g_source;
+    struct stacklet_s *g_target;
+};
+
+/***************************************************************/
+
+static void g_save(struct stacklet_s* g, char* stop
+#ifdef DEBUG_DUMP
+                   , int overwrite_stack_for_debug
+#endif
+                   )
 {
     /* Save more of g's stack into the heap -- at least up to 'stop'
 
@@ -46,7 +100,15 @@ static void g_save(struct stacklet_s* g, char* stop)
 
     if (sz2 > sz1) {
         char *c = (char *)(g + 1);
+#if STACK_DIRECTION == 0
         memcpy(c+sz1, g->stack_start+sz1, sz2-sz1);
+#  ifdef DEBUG_DUMP
+        if (overwrite_stack_for_debug)
+          memset(g->stack_start+sz1, 0xdb, sz2-sz1);
+#  endif
+#else
+        xxx;
+#endif
         g->stack_saved = sz2;
     }
 }
@@ -56,7 +118,8 @@ static void g_save(struct stacklet_s* g, char* stop)
  * initially completely unsaved, so it is attached to the head of the
  * chained list of 'stack_prev'.
  */
-static int g_allocate_source_stacklet(void *old_stack_pointer, struct stacklet_thread_s *thrd)
+static int g_allocate_source_stacklet(void *old_stack_pointer,
+                                      struct stacklet_thread_s *thrd)
 {
     struct stacklet_s *stacklet;
     ptrdiff_t stack_size = (thrd->g_current_stack_stop -
@@ -78,7 +141,8 @@ static int g_allocate_source_stacklet(void *old_stack_pointer, struct stacklet_t
 
 /* Save more of the C stack away, up to 'target_stop'.
  */
-static void g_clear_stack(struct stacklet_s *g_target, struct stacklet_thread_s *thrd)
+static void g_clear_stack(struct stacklet_s *g_target,
+                          struct stacklet_thread_s *thrd)
 {
     struct stacklet_s *current = thrd->g_stack_chain_head;
     char *target_stop = g_target->stack_stop;
@@ -91,14 +155,22 @@ static void g_clear_stack(struct stacklet_s *g_target, struct stacklet_thread_s 
         if (current != g_target) {
             /* don't bother saving away g_target, because
                it would be immediately restored */
-            g_save(current, current->stack_stop);
+            g_save(current, current->stack_stop
+#ifdef DEBUG_DUMP
+                   , 1
+#endif
+                   );
         }
         current = prev;
     }
 
     /* save a partial stack */
     if (current != NULL && current->stack_start < target_stop)
-        g_save(current, target_stop);
+        g_save(current, target_stop
+#ifdef DEBUG_DUMP
+               , 1
+#endif
+               );
 
     thrd->g_stack_chain_head = current;
 }
@@ -123,7 +195,11 @@ static void *g_initial_save_state(void *old_stack_pointer, void *rawthrd)
 {
     struct stacklet_thread_s *thrd = (struct stacklet_thread_s *)rawthrd;
     if (g_allocate_source_stacklet(old_stack_pointer, thrd) == 0)
-        g_save(thrd->g_source, thrd->g_current_stack_marker);
+        g_save(thrd->g_source, thrd->g_current_stack_marker
+#ifdef DEBUG_DUMP
+               , 0
+#endif
+               );
     return NULL;
 }
 
@@ -148,13 +224,18 @@ static void *g_restore_state(void *new_stack_pointer, void *rawthrd)
     ptrdiff_t stack_saved = g->stack_saved;
 
     assert(new_stack_pointer == g->stack_start);
+#if STACK_DIRECTION == 0
     memcpy(g->stack_start, g+1, stack_saved);
+#else
+    memcpy(g->stack_start - stack_saved, g+1, stack_saved);
+#endif
     thrd->g_current_stack_stop = g->stack_stop;
     free(g);
     return EMPTY_STACKLET_HANDLE;
 }
 
-static void g_initialstub(struct stacklet_thread_s *thrd, stacklet_run_fn run, void *run_arg)
+static void g_initialstub(struct stacklet_thread_s *thrd,
+                          stacklet_run_fn run, void *run_arg)
 {
     struct stacklet_s *result;
 
@@ -177,7 +258,6 @@ static void g_initialstub(struct stacklet_thread_s *thrd, stacklet_run_fn run, v
     }
     /* The second time it returns. */
 }
-
 
 /************************************************************/
 
@@ -203,7 +283,8 @@ void stacklet_deletethread(stacklet_thread_handle thrd)
     free(thrd);
 }
 
-stacklet_handle stacklet_new(stacklet_thread_handle thrd, stacklet_run_fn run, void *run_arg)
+stacklet_handle stacklet_new(stacklet_thread_handle thrd,
+                             stacklet_run_fn run, void *run_arg)
 {
     long stackmarker;
     assert((char *)NULL < (char *)&stackmarker);
@@ -247,3 +328,25 @@ void stacklet_destroy(stacklet_handle target)
     free(target);
 }
 
+char **_stacklet_translate_pointer(stacklet_handle context, char **ptr)
+{
+  char *p = (char *)ptr;
+  long delta;
+  if (context == NULL)
+    return ptr;
+  delta = p - context->stack_start;
+  if (((unsigned long)delta) < ((unsigned long)context->stack_saved)) {
+      /* a pointer to a saved away word */
+      char *c = (char *)(context + 1);
+      return (char **)(c + delta);
+  }
+  if (((unsigned long)delta) >=
+      (unsigned long)(context->stack_stop - context->stack_start)) {
+      /* out-of-stack pointer!  it's only ok if we are the main stacklet
+         and we are reading past the end, because the main stacklet's
+         stack stop is not exactly known. */
+      assert(delta >= 0);
+      assert(((long)context->stack_stop) & 1);
+  }
+  return ptr;
+}

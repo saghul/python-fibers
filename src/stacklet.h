@@ -2,7 +2,6 @@
 #ifndef _STACKLET_H_
 #define _STACKLET_H_
 
-#include <stddef.h>
 #include <stdlib.h>
 
 
@@ -17,39 +16,10 @@ typedef struct stacklet_s *stacklet_handle;
 
 #define EMPTY_STACKLET_HANDLE  ((stacklet_handle) -1)
 
+
+/* Multithread support.
+ */
 typedef struct stacklet_thread_s *stacklet_thread_handle;
-
-struct stacklet_s {
-    /* The portion of the real stack claimed by this paused tealet. */
-    char *stack_start;                /* the "near" end of the stack */
-    char *stack_stop;                 /* the "far" end of the stack */
-
-    /* The amount that has been saved away so far, just after this struct.
-     * There is enough allocated space for 'stack_stop - stack_start'
-     * bytes.
-     */
-    ptrdiff_t stack_saved;            /* the amount saved */
-
-    /* Internally, some stacklets are arranged in a list, to handle lazy
-     * saving of stacks: if the stacklet has a partially unsaved stack,
-     * this points to the next stacklet with a partially unsaved stack,
-     * creating a linked list with each stacklet's stack_stop higher
-     * than the previous one.  The last entry in the list is always the
-     * main stack.
-     */
-    struct stacklet_s *stack_prev;
-
-    stacklet_thread_handle stack_thrd;  /* the thread where the stacklet is */
-};
-
-struct stacklet_thread_s {
-    struct stacklet_s *g_stack_chain_head;  /* NULL <=> running main */
-    char *g_current_stack_stop;
-    char *g_current_stack_marker;
-    struct stacklet_s *g_source;
-    struct stacklet_s *g_target;
-};
-
 
 stacklet_thread_handle stacklet_newthread(void);
 void stacklet_deletethread(stacklet_thread_handle thrd);
@@ -61,10 +31,11 @@ void stacklet_deletethread(stacklet_thread_handle thrd);
  */
 typedef stacklet_handle (*stacklet_run_fn)(stacklet_handle, void *);
 
-/* Call 'run(source, run_arg)' in a new stack. See stacklet_switch()
+/* Call 'run(source, run_arg)' in a new stack.  See stacklet_switch()
  * for the return value.
  */
-stacklet_handle stacklet_new(stacklet_thread_handle thrd, stacklet_run_fn run, void *run_arg);
+stacklet_handle stacklet_new(stacklet_thread_handle thrd,
+                             stacklet_run_fn run, void *run_arg);
 
 /* Switch to the target handle, resuming its stack.  This returns:
  *  - if we come back from another call to stacklet_switch(), the source handle
@@ -80,5 +51,11 @@ stacklet_handle stacklet_switch(stacklet_handle target);
  */
 void stacklet_destroy(stacklet_handle target);
 
+/* stacklet_handle _stacklet_switch_to_copy(stacklet_handle) --- later */
+
+/* Hack: translate a pointer into the stack of a stacklet into a pointer
+ * to where it is really stored so far.  Only to access word-sized data.
+ */
+char **_stacklet_translate_pointer(stacklet_handle context, char **ptr);
 
 #endif /* _STACKLET_H_ */

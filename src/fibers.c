@@ -1,4 +1,5 @@
 
+#include <stddef.h>
 #include "fibers.h"
 
 typedef struct {
