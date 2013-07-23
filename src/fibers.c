@@ -618,22 +618,6 @@ Fiber_parent_set(Fiber *self, PyObject *val, void* c)
 }
 
 
-static PyObject *
-Fiber_frame_get(Fiber *self, void* c)
-{
-	PyObject *result;
-	UNUSED_ARG(c);
-
-	if (self->ts.frame != NULL) {
-	    result = (PyObject *)self->ts.frame;
-	} else {
-	    result = Py_None;
-	}
-	Py_INCREF(result);
-	return result;
-}
-
-
 static int
 Fiber_tp_traverse(Fiber *self, visitproc visit, void *arg)
 {
@@ -700,7 +684,6 @@ Fiber_tp_methods[] = {
 static PyGetSetDef Fiber_tp_getsets[] = {
     {"__dict__", (getter)Fiber_dict_get, (setter)Fiber_dict_set, "Instance dictionary", NULL},
     {"parent", (getter)Fiber_parent_get, (setter)Fiber_parent_set, "Fiber parent or None if it's the main Fiber", NULL},
-    {"t_frame", (getter)Fiber_frame_get, NULL, "Current top frame or None", NULL},
     {NULL}
 };
 
