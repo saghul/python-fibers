@@ -79,7 +79,8 @@ MyPyModule_AddType(PyObject *module, const char *name, PyTypeObject *type)
     return 0;
 }
 
-/* Add a type to a module */
+/* Add an object to a module */
+/*
 static int
 MyPyModule_AddObject(PyObject *module, const char *name, PyObject *value)
 {
@@ -90,6 +91,7 @@ MyPyModule_AddObject(PyObject *module, const char *name, PyObject *value)
     }
     return 0;
 }
+*/
 
 #endif
 
