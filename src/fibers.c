@@ -643,6 +643,7 @@ Fiber_tp_traverse(Fiber *self, visitproc visit, void *arg)
     Py_VISIT(self->dict);
     Py_VISIT(self->ts_dict);
     Py_VISIT(self->parent);
+    Py_VISIT(self->ts.frame);
     Py_VISIT(self->ts.exc_type);
     Py_VISIT(self->ts.exc_value);
     Py_VISIT(self->ts.exc_traceback);
@@ -659,6 +660,7 @@ Fiber_tp_clear(Fiber *self)
     Py_CLEAR(self->dict);
     Py_CLEAR(self->ts_dict);
     Py_CLEAR(self->parent);
+    Py_CLEAR(self->ts.frame);
     Py_CLEAR(self->ts.exc_type);
     Py_CLEAR(self->ts.exc_value);
     Py_CLEAR(self->ts.exc_traceback);
