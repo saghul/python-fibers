@@ -4,6 +4,7 @@ try:
     from setuptools import setup, Extension
 except ImportError:
     from distutils.core import setup, Extension
+from glob import glob
 
 
 __version__ = "0.0.1"
@@ -33,7 +34,7 @@ setup(name             = "fibers",
           "Programming Language :: Python :: 3.3"
       ],
       ext_modules  = [Extension('fibers',
-                                sources = ['src/stacklet.c', 'src/fibers.c'],
+                                sources = glob('src/*.c'),
                                 define_macros=[('MODULE_VERSION', __version__)],
                                )]
      )
