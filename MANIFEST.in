@@ -1,0 +1,9 @@
+include CREDITS README.rst LICENSE
+include build_inplace setup.py tox.ini
+recursive-include docs *
+recursive-include src *
+recursive-include tests *
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]
+prune docs/_build
+
