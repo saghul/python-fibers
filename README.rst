@@ -1,6 +1,6 @@
-======================================================
-fibers: lightweight concurrent multitasking for Python
-======================================================
+===========================================
+fibers: lightweight concurrent multitasking
+===========================================
 
 
 Overview
