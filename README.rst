@@ -115,7 +115,8 @@ Author
 Saúl Ibarra Corretgé <saghul@gmail.com>
 
 This project would not have been possible without the previous work done in
-the greenlet and stacklet (part of PyPy) projects.
+the `greenlet <http://greenlet.readthedocs.org>`_ and stacklet (part of
+`PyPy <http://pypy.org>`_) projects.
 
 
 License
@@ -127,7 +128,13 @@ Unless stated otherwise on-file python-fibers uses the MIT license, check LICENS
 Supported Python versions
 =========================
 
-Python >= 2.6 is supported. Yes, that includes Python 3 :-)
+Python >= 2.6 is supported. Yes, that includes Python 3.
+
+
+Supported architectures
+=======================
+
+x86, x86-64 and ARM are supported.
 
 
 Contributing
@@ -135,5 +142,5 @@ Contributing
 
 If you'd like to contribute, fork the project, make a patch and send a pull
 request. Have a look at the surrounding code and please, make yours look
-alike :-)
+alike.
 
