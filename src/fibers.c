@@ -187,6 +187,10 @@ Fiber_tp_init(Fiber *self, PyObject *args, PyObject *kwargs)
             PyErr_SetString(PyExc_FiberError, "parent cannot be on a different thread");
             return -1;
         }
+        if (parent->stacklet_h == EMPTY_STACKLET_HANDLE) {
+            PyErr_SetString(PyExc_ValueError, "parent must not have ended");
+            return -1;
+        }
     } else {
         parent = _global_state.current;
     }

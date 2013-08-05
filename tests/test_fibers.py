@@ -303,6 +303,14 @@ class FiberTests(unittest.TestCase):
         self.assertRaises(TypeError, copy.copy, Fiber())
         self.assertRaises(TypeError, copy.deepcopy, Fiber())
 
+    def test_finished_parent(self):
+        def f():
+            return 42
+        g = Fiber(f)
+        g.switch()
+        self.assertFalse(g.is_alive())
+        self.assertRaises(ValueError, Fiber, parent=g)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)
