@@ -8,7 +8,7 @@ from glob import glob
 import sys
 
 
-__version__ = "0.0.1"
+__version__ = "0.1.0"
 
 if sys.platform == 'win32' and '32 bit' in sys.version:
     extra_objects = ['src/switch_x86_msvc.obj']
