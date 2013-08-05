@@ -63,7 +63,7 @@ python-fibers can be installed via pip as follows:
 
 ::
 
-    pip install python-fibers
+    pip install fibers
 
 
 Building
