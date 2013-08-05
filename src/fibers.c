@@ -11,7 +11,7 @@ typedef struct {
 
 static volatile FiberGlobalState _global_state;
 
-static PyObject* ts_curkey;
+static PyObject* current_fiber_key;
 
 static PyObject* PyExc_FiberError;
 
@@ -72,11 +72,11 @@ restart:
             }
             return NULL;
         }
-	current = (Fiber *)PyDict_GetItem(tstate_dict, ts_curkey);
+	current = (Fiber *)PyDict_GetItem(tstate_dict, current_fiber_key);
 	if (current) {
 	    /* found - remove it, to avoid keeping a ref */
 	    Py_INCREF(current);
-	    PyDict_DelItem(tstate_dict, ts_curkey);
+	    PyDict_DelItem(tstate_dict, current_fiber_key);
 	} else {
             /* first time we see this thread-state, create main Fiber */
             current = fiber_create_main();
@@ -98,9 +98,9 @@ retry:
 	previous = _global_state.current;
 	_global_state.current = current;
 
-        if (PyDict_GetItem(previous->ts_dict, ts_curkey) != (PyObject *)previous) {
+        if (PyDict_GetItem(previous->ts_dict, current_fiber_key) != (PyObject *)previous) {
             /* save previous as the current Fiber of its own (real) thread */
-            if (PyDict_SetItem(previous->ts_dict, ts_curkey, (PyObject*) previous) < 0) {
+            if (PyDict_SetItem(previous->ts_dict, current_fiber_key, (PyObject*) previous) < 0) {
                 Py_DECREF(previous);
                 Py_DECREF(current);
                 Py_XDECREF(exc);
@@ -115,8 +115,8 @@ retry:
 	if (_global_state.current != current) {
             /* some Python code executed above and there was a thread switch,
              * so the global current points to some other Fiber again. We need to
-             * delete ts_curkey and retry. */
-            PyDict_DelItem(tstate_dict, ts_curkey);
+             * delete current_fiber_key and retry. */
+            PyDict_DelItem(tstate_dict, current_fiber_key);
             goto retry;
 	}
 
@@ -759,11 +759,11 @@ init_fibers(void)
 
     /* keys for per-thread dictionary */
 #if PY_MAJOR_VERSION >= 3
-    ts_curkey = PyUnicode_InternFromString("__fibers_current");
+    current_fiber_key = PyUnicode_InternFromString("__fibers_current");
 #else
-    ts_curkey = PyString_InternFromString("__fibers_current");
+    current_fiber_key = PyString_InternFromString("__fibers_current");
 #endif
-    if (ts_curkey == NULL) {
+    if (current_fiber_key == NULL) {
         goto fail;
     }
 
