@@ -5,7 +5,7 @@ sys.path.insert(0, '../')
 import unittest
 
 import fibers
-from fibers import Fiber, FiberExit
+from fibers import Fiber
 
 
 def switch(val):
@@ -52,13 +52,16 @@ class ThrowTests(unittest.TestCase):
 
     def test_kill(self):
         def f():
-            switch("ok")
-            switch("fail")
+            try:
+                switch("ok")
+                switch("fail")
+            except Exception as e:
+                return e
         g = Fiber(f)
         res = g.switch()
         self.assertEqual(res, "ok")
-        res = g.throw()
-        self.assertTrue(isinstance(res, FiberExit))
+        res = g.throw(ValueError)
+        self.assertTrue(isinstance(res, ValueError))
         self.assertFalse(g.is_alive())
 
     def test_throw_goes_to_original_parent(self):
