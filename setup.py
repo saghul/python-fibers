@@ -26,7 +26,7 @@ setup(name             = "fibers",
       long_description = open("README.rst").read(),
       platforms        = ["POSIX", "Microsoft Windows"],
       classifiers      = [
-          "Development Status :: 2 - Experimental",
+          "Development Status :: 3 - Alpha",
           "Intended Audience :: Developers",
           "License :: OSI Approved :: MIT License",
           "Operating System :: POSIX",
