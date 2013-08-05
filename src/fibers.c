@@ -14,7 +14,6 @@ static volatile FiberGlobalState _global_state;
 static PyObject* ts_curkey;
 
 static PyObject* PyExc_FiberError;
-static PyObject* PyExc_FiberExit;
 
 
 /*
@@ -254,7 +253,7 @@ static stacklet_handle
 stacklet__callback(stacklet_handle h, void *arg)
 {
     Fiber *origin, *self, *target;
-    PyObject *result, *value, *exc, *val, *tb;
+    PyObject *result, *value;
     PyThreadState *tstate;
     stacklet_handle target_h;
 
@@ -286,18 +285,6 @@ stacklet__callback(stacklet_handle h, void *arg)
     } else {
         result = Py_None;
         Py_INCREF(Py_None);
-    }
-
-    /* catch and ignore FiberExit exception */
-    if (result == NULL && PyErr_ExceptionMatches(PyExc_FiberExit)) {
-        PyErr_Fetch(&exc, &val, &tb);
-        if (val == NULL) {
-            val = Py_None;
-            Py_INCREF(Py_None);
-        }
-        result = val;
-        Py_DECREF(exc);
-        Py_XDECREF(tb);
     }
 
     /* this Fiber has finished, select the parent as the next one to be run  */
@@ -434,10 +421,9 @@ Fiber_func_throw(Fiber *self, PyObject *args)
     Fiber *current;
     PyObject *typ, *val, *tb;
 
-    typ = PyExc_FiberExit;
     val = tb = NULL;
 
-    if (!PyArg_ParseTuple(args, "|OOO:throw", &typ, &val, &tb)) {
+    if (!PyArg_ParseTuple(args, "O|OO:throw", &typ, &val, &tb)) {
 	return NULL;
     }
 
@@ -776,8 +762,6 @@ init_fibers(void)
     /* Exceptions */
     PyExc_FiberError = PyErr_NewException("fibers.error", NULL, NULL);
     MyPyModule_AddType(fibers, "error", (PyTypeObject *)PyExc_FiberError);
-    PyExc_FiberExit = PyErr_NewException("fibers.FiberExit", PyExc_BaseException, NULL);
-    MyPyModule_AddType(fibers, "FiberExit", (PyTypeObject *)PyExc_FiberExit);
 
     /* Types */
     MyPyModule_AddType(fibers, "Fiber", &FiberType);
