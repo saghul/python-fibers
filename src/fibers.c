@@ -287,6 +287,14 @@ stacklet__callback(stacklet_handle h, void *arg)
         Py_INCREF(Py_None);
     }
 
+    /* cleanup target and arguments */
+    Py_XDECREF(self->target);
+    Py_XDECREF(self->args);
+    Py_XDECREF(self->kwargs);
+    self->target = NULL;
+    self->args = NULL;
+    self->kwargs = NULL;
+
     /* this Fiber has finished, select the parent as the next one to be run  */
     target_h = NULL;
     target = self->parent;

@@ -16,8 +16,9 @@ class ArgRefcountTests(unittest.TestCase):
         args = ('a', 'b', 'c')
         refcount_before = sys.getrefcount(args)
         g = Fiber(target=lambda *x: None, args=args)
-        g.switch()
         self.assertEqual(sys.getrefcount(args), refcount_before+1)
+        g.switch()
+        self.assertEqual(sys.getrefcount(args), refcount_before)
         del g
         self.assertEqual(sys.getrefcount(args), refcount_before)
 
@@ -25,8 +26,9 @@ class ArgRefcountTests(unittest.TestCase):
         kwargs = {'a': 1234}
         refcount_before = sys.getrefcount(kwargs)
         g = Fiber(lambda **x: None, kwargs=kwargs)
-        g.switch()
         self.assertEqual(sys.getrefcount(kwargs), refcount_before+1)
+        g.switch()
+        self.assertEqual(sys.getrefcount(kwargs), refcount_before)
         del g
         self.assertEqual(sys.getrefcount(kwargs), refcount_before)
 
