@@ -183,7 +183,7 @@ Fiber_tp_init(Fiber *self, PyObject *args, PyObject *kwargs)
 
     if (parent) {
         /* check if parent is on the same (real) thread */
-        if (parent->ts_dict != PyThreadState_GET()->dict) {
+        if (parent->ts_dict != PyThreadState_GetDict()) {
             PyErr_SetString(PyExc_FiberError, "parent cannot be on a different thread");
             return -1;
         }
