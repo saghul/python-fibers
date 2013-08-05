@@ -184,7 +184,7 @@ Fiber_tp_init(Fiber *self, PyObject *args, PyObject *kwargs)
     if (parent) {
         /* check if parent is on the same (real) thread */
         if (parent->ts_dict != PyThreadState_GET()->dict) {
-            PyErr_SetString(PyExc_ValueError, "parent cannot be on a different thread");
+            PyErr_SetString(PyExc_FiberError, "parent cannot be on a different thread");
             return -1;
         }
     } else {
@@ -399,7 +399,7 @@ Fiber_func_switch(Fiber *self, PyObject *args)
 
     current = _global_state.current;
     if (self == current) {
-        PyErr_SetString(PyExc_RuntimeError, "cannot switch from a Fiber to itself");
+        PyErr_SetString(PyExc_FiberError, "cannot switch from a Fiber to itself");
         return NULL;
     }
 
@@ -473,7 +473,7 @@ Fiber_func_throw(Fiber *self, PyObject *args)
 
     current = _global_state.current;
     if (self == current) {
-        PyErr_SetString(PyExc_RuntimeError, "cannot throw from a Fiber to itself");
+        PyErr_SetString(PyExc_FiberError, "cannot throw from a Fiber to itself");
         goto error;
     }
 
@@ -539,7 +539,7 @@ Fiber_dict_set(Fiber *self, PyObject* val, void* c)
     UNUSED_ARG(c);
 
     if (val == NULL) {
-        PyErr_SetString(PyExc_TypeError, "__dict__ may not be deleted");
+        PyErr_SetString(PyExc_AttributeError, "__dict__ may not be deleted");
         return -1;
     }
     if (!PyDict_Check(val)) {

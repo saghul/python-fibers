@@ -296,7 +296,7 @@ class FiberTests(unittest.TestCase):
         self.assertEqual(g.__dict__, {'test': 42})
         g.__dict__ = g.__dict__
         self.assertEqual(g.__dict__, {'test': 42})
-        self.assertRaises(TypeError, deldict, g)
+        self.assertRaises(AttributeError, deldict, g)
         self.assertRaises(TypeError, setdict, g, 42)
 
     def test_deepcopy(self):
