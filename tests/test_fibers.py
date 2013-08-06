@@ -218,7 +218,8 @@ class FiberTests(unittest.TestCase):
         self.assertRaises(fibers.error, result[0].throw, SomeError())
 
     def test_threaded_updatecurrent(self):
-        return self.skipTest("FIXME - hangs")
+        # FIXME (hangs?)
+        return
         # released when main thread should execute
         lock1 = threading.Lock()
         lock1.acquire()
