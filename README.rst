@@ -59,7 +59,7 @@ http://readthedocs.org/docs/python-fibers/
 Installing
 ==========
 
-python-fibers can be installed via pip as follows:
+fibers can be installed via pip as follows:
 
 ::
 
@@ -122,7 +122,7 @@ the `greenlet <http://greenlet.readthedocs.org>`_ and stacklet (part of
 License
 =======
 
-Unless stated otherwise on-file python-fibers uses the MIT license, check LICENSE file.
+Unless stated otherwise on-file fibers uses the MIT license, check LICENSE file.
 
 
 Supported Python versions
