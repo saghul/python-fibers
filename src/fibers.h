@@ -45,9 +45,6 @@ static PyTypeObject FiberType;
 
 
 /* Some helper stuff */
-#define STRINGIFY_HELPER(x) #x
-#define STRINGIFY(x) STRINGIFY_HELPER(x)
-
 #ifdef _MSC_VER
     #define INLINE __inline
 #else

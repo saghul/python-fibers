@@ -778,9 +778,6 @@ init_fibers(void)
     /* Types */
     MyPyModule_AddType(fibers, "Fiber", &FiberType);
 
-    /* Module version (the MODULE_VERSION macro is defined by setup.py) */
-    PyModule_AddStringConstant(fibers, "__version__", STRINGIFY(MODULE_VERSION));
-
     return fibers;
 
 fail:

@@ -4,11 +4,10 @@ try:
     from setuptools import setup, Extension
 except ImportError:
     from distutils.core import setup, Extension
-from glob import glob
+
+import glob
+import re
 import sys
-
-
-__version__ = "0.1.0"
 
 
 if hasattr(sys, 'pypy_version_info'):
@@ -21,14 +20,17 @@ else:
     else:
         extra_objects = []
     ext_modules  = [Extension('fibers._cfibers',
-                              sources = glob('src/*.c'),
+                              sources = glob.glob('src/*.c'),
                               extra_objects=extra_objects,
-                              define_macros=[('MODULE_VERSION', __version__)],
                              )]
 
 
+def get_version():
+    return re.search(r"""__version__\s+=\s+(?P<quote>['"])(?P<version>.+?)(?P=quote)""", open('fibers/__init__.py').read()).group('version')
+
+
 setup(name             = "fibers",
-      version          = __version__,
+      version          = get_version(),
       author           = "Saúl Ibarra Corretgé",
       author_email     = "saghul@gmail.com",
       url              = "http://github.com/saghul/python-fibers",
