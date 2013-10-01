@@ -1,11 +1,9 @@
 
-import sys
-sys.path.insert(0, '../')
-
-import unittest
 import gc
-import weakref
+import sys
 import threading
+import unittest
+import weakref
 
 from fibers import Fiber, current
 

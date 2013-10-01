@@ -1,8 +1,6 @@
 
-import sys
-sys.path.insert(0, '../')
-
 import copy
+import sys
 import time
 import threading
 import unittest

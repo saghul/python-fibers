@@ -1,7 +1,5 @@
 
 import sys
-sys.path.insert(0, '../')
-
 import unittest
 
 import fibers
