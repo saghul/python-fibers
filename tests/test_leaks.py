@@ -8,6 +8,7 @@ import weakref
 from fibers import Fiber, current
 
 
+is_pypy = hasattr(sys, 'pypy_version_info')
 has_refcount = hasattr(sys, 'getrefcount')
 
 
@@ -38,6 +39,8 @@ class ArgRefcountTests(unittest.TestCase):
         self.assertEqual(sys.getrefcount(kwargs), refcount_before)
 
     def test_threaded_leak(self):
+        if is_pypy:
+            return
         gg = []
         def worker():
             # only main greenlet present
@@ -52,6 +55,8 @@ class ArgRefcountTests(unittest.TestCase):
             self.assertTrue(g() is None)
 
     def test_threaded_adv_leak(self):
+        if is_pypy:
+            return
         gg = []
         def worker():
             # main and additional *finished* greenlets
