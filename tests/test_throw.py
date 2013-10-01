@@ -82,6 +82,20 @@ class ThrowTests(unittest.TestCase):
         self.assertFalse(g2.is_alive())
         self.assertTrue(g1.is_alive())    # g1 is skipped because it was not started
 
+    def test_throw_goes_to_original_parent2(self):
+        main = fibers.current()
+
+        def f1():
+            try:
+                main.switch("f1 ready to catch")
+            except IndexError:
+                return "caught"
+            else:
+                return "normal exit"
+
+        def f2():
+            main.switch("from f2")
+
         g1 = Fiber(f1)
         g2 = Fiber(target=f2, parent=g1)
         res = g1.switch()
@@ -90,6 +104,20 @@ class ThrowTests(unittest.TestCase):
         self.assertEqual(res, "caught")
         self.assertFalse(g2.is_alive())
         self.assertFalse(g1.is_alive())
+
+    def test_throw_goes_to_original_parent3(self):
+        main = fibers.current()
+
+        def f1():
+            try:
+                main.switch("f1 ready to catch")
+            except IndexError:
+                return "caught"
+            else:
+                return "normal exit"
+
+        def f2():
+            main.switch("from f2")
 
         g1 = Fiber(f1)
         g2 = Fiber(target=f2, parent=g1)
