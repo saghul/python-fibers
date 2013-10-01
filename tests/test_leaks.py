@@ -8,9 +8,14 @@ import weakref
 from fibers import Fiber, current
 
 
+has_refcount = hasattr(sys, 'getrefcount')
+
+
 class ArgRefcountTests(unittest.TestCase):
 
     def test_arg_refs(self):
+        if not has_refcount:
+            return
         args = ('a', 'b', 'c')
         refcount_before = sys.getrefcount(args)
         g = Fiber(target=lambda *x: None, args=args)
@@ -21,6 +26,8 @@ class ArgRefcountTests(unittest.TestCase):
         self.assertEqual(sys.getrefcount(args), refcount_before)
 
     def test_kwarg_refs(self):
+        if not has_refcount:
+            return
         kwargs = {'a': 1234}
         refcount_before = sys.getrefcount(kwargs)
         g = Fiber(lambda **x: None, kwargs=kwargs)
