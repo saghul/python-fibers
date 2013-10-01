@@ -690,7 +690,7 @@ static PyGetSetDef Fiber_tp_getsets[] = {
 
 static PyTypeObject FiberType = {
     PyVarObject_HEAD_INIT(NULL, 0)
-    "fibers.Fiber",                                                 /*tp_name*/
+    "fibers._cfibers.Fiber",                                        /*tp_name*/
     sizeof(Fiber),                                                  /*tp_basicsize*/
     0,                                                              /*tp_itemsize*/
     (destructor)Fiber_tp_dealloc,                                   /*tp_dealloc*/
@@ -740,7 +740,7 @@ fibers_methods[] = {
 #if PY_MAJOR_VERSION >= 3
 static PyModuleDef fibers_module = {
     PyModuleDef_HEAD_INIT,
-    "fibers",                 /*m_name*/
+    "fibers._cfibers",        /*m_name*/
     NULL,                     /*m_doc*/
     -1,                       /*m_size*/
     fibers_methods  ,         /*m_methods*/
@@ -758,7 +758,7 @@ init_fibers(void)
 #if PY_MAJOR_VERSION >= 3
     fibers = PyModule_Create(&fibers_module);
 #else
-    fibers = Py_InitModule("fibers", fibers_methods);
+    fibers = Py_InitModule("fibers._cfibers", fibers_methods);
 #endif
 
     /* keys for per-thread dictionary */
@@ -772,7 +772,7 @@ init_fibers(void)
     }
 
     /* Exceptions */
-    PyExc_FiberError = PyErr_NewException("fibers.error", NULL, NULL);
+    PyExc_FiberError = PyErr_NewException("fibers._cfibers.error", NULL, NULL);
     MyPyModule_AddType(fibers, "error", (PyTypeObject *)PyExc_FiberError);
 
     /* Types */
@@ -794,13 +794,13 @@ fail:
 
 #if PY_MAJOR_VERSION >= 3
 PyMODINIT_FUNC
-PyInit_fibers(void)
+PyInit__cfibers(void)
 {
     return init_fibers();
 }
 #else
 PyMODINIT_FUNC
-initfibers(void)
+init_cfibers(void)
 {
     init_fibers();
 }
