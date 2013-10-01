@@ -1,5 +1,5 @@
 include CREDITS README.rst LICENSE
-include build_inplace setup.py tox.ini
+include build_inplace setup.py setup.cfg tox.ini
 recursive-include docs *
 recursive-include src *
 recursive-include tests *

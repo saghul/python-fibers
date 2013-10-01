@@ -1,14 +1,15 @@
 
-import sys
-sys.path.insert(0, '../')
-
 import copy
+import sys
 import time
 import threading
 import unittest
 
 import fibers
 from fibers import Fiber, current
+
+
+is_pypy = hasattr(sys, 'pypy_version_info')
 
 
 class SomeError(Exception):
@@ -284,6 +285,8 @@ class FiberTests(unittest.TestCase):
         g.switch()
 
     def test_instance_dict(self):
+        if is_pypy:
+            return
         def f():
             current().test = 42
         def deldict(g):

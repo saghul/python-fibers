@@ -1,18 +1,22 @@
 
-import sys
-sys.path.insert(0, '../')
-
-import unittest
 import gc
-import weakref
+import sys
 import threading
+import unittest
+import weakref
 
 from fibers import Fiber, current
+
+
+is_pypy = hasattr(sys, 'pypy_version_info')
+has_refcount = hasattr(sys, 'getrefcount')
 
 
 class ArgRefcountTests(unittest.TestCase):
 
     def test_arg_refs(self):
+        if not has_refcount:
+            return
         args = ('a', 'b', 'c')
         refcount_before = sys.getrefcount(args)
         g = Fiber(target=lambda *x: None, args=args)
@@ -23,6 +27,8 @@ class ArgRefcountTests(unittest.TestCase):
         self.assertEqual(sys.getrefcount(args), refcount_before)
 
     def test_kwarg_refs(self):
+        if not has_refcount:
+            return
         kwargs = {'a': 1234}
         refcount_before = sys.getrefcount(kwargs)
         g = Fiber(lambda **x: None, kwargs=kwargs)
@@ -33,6 +39,8 @@ class ArgRefcountTests(unittest.TestCase):
         self.assertEqual(sys.getrefcount(kwargs), refcount_before)
 
     def test_threaded_leak(self):
+        if is_pypy:
+            return
         gg = []
         def worker():
             # only main greenlet present
@@ -47,6 +55,8 @@ class ArgRefcountTests(unittest.TestCase):
             self.assertTrue(g() is None)
 
     def test_threaded_adv_leak(self):
+        if is_pypy:
+            return
         gg = []
         def worker():
             # main and additional *finished* greenlets
