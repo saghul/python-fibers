@@ -2,6 +2,8 @@
 fibers: lightweight concurrent multitasking
 ===========================================
 
+.. image:: https://badge.fury.io/py/fibers.png
+    :target: http://badge.fury.io/py/fibers
 
 Overview
 ========
@@ -106,7 +108,7 @@ The test suite can be run using nose:
 
 ::
 
-    nosetests -v -w tests/
+    nosetests -v
 
 
 Author
@@ -128,7 +130,8 @@ Unless stated otherwise on-file fibers uses the MIT license, check LICENSE file.
 Supported Python versions
 =========================
 
-Python >= 2.6 is supported. Yes, that includes Python 3.
+Python >= 2.6 is supported. Yes, that includes Python 3. CPython and PyPy are
+supported.
 
 
 Supported architectures
