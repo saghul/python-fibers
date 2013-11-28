@@ -3,14 +3,13 @@
 #include "fibers.h"
 
 typedef struct {
-    Fiber *current;
     Fiber *origin;
-    Fiber *destination;
     PyObject *value;
 } FiberGlobalState;
 
 static volatile FiberGlobalState _global_state;
 
+static PyObject* main_fiber_key;
 static PyObject* current_fiber_key;
 
 static PyObject* PyExc_FiberError;
@@ -27,12 +26,7 @@ fiber_create_main(void)
     PyObject *dict = PyThreadState_GetDict();
     PyTypeObject *cls = (PyTypeObject *)&FiberType;
 
-    if (dict == NULL) {
-        if (!PyErr_Occurred()) {
-            PyErr_NoMemory();
-        }
-        return NULL;
-    }
+    ASSERT(dict != NULL);
 
     /* create the main Fiber for this thread */
     t_main = (Fiber *)cls->tp_new(cls, NULL, NULL);
@@ -51,95 +45,48 @@ fiber_create_main(void)
 
 
 /*
- * Update the current Fiber reference on the current thread. The first time this
+ * Get the current Fiber reference on the current thread. The first time this
  * function is called on a given (real) thread, the main Fiber is created.
  */
 static Fiber *
-update_current(void)
+get_current(void)
 {
-	Fiber *current, *previous;
-	PyObject *exc, *val, *tb, *tstate_dict;
+    Fiber *current;
+    PyObject *tstate_dict;
 
-restart:
-	/* save current exception */
-	PyErr_Fetch(&exc, &val, &tb);
-
-	/* get current Fiber from the active thread-state */
-	tstate_dict = PyThreadState_GetDict();
-        if (tstate_dict == NULL) {
-            if (!PyErr_Occurred()) {
-                PyErr_NoMemory();
-            }
+    /* get current Fiber from the active thread-state */
+    tstate_dict = PyThreadState_GetDict();
+    if (tstate_dict == NULL) {
+        if (!PyErr_Occurred()) {
+            PyErr_NoMemory();
+        }
+        return NULL;
+    }
+    current = (Fiber *)PyDict_GetItem(tstate_dict, current_fiber_key);
+    if (current == NULL) {
+        current = fiber_create_main();
+        if (current == NULL) {
             return NULL;
         }
-	current = (Fiber *)PyDict_GetItem(tstate_dict, current_fiber_key);
-	if (current) {
-	    /* found - remove it, to avoid keeping a ref */
-	    Py_INCREF(current);
-	    PyDict_DelItem(tstate_dict, current_fiber_key);
-	} else {
-            /* first time we see this thread-state, create main Fiber */
-            current = fiber_create_main();
-            if (current == NULL) {
-                Py_XDECREF(exc);
-                Py_XDECREF(val);
-                Py_XDECREF(tb);
-                return NULL;
-	    }
-	    if (_global_state.current == NULL) {
-	        /* First time a main Fiber is allocated in any thread */
-	        _global_state.current = current;
-	    }
+        /* Keep a reference to the main fiber in the thread dict. The main
+         * fiber is special because we don't require the user to keep a
+         * reference to it. It should be deleted when the thread exits. */
+        if (PyDict_SetItem(tstate_dict, main_fiber_key, (PyObject *) current) < 0) {
+            Py_DECREF(current);
+            return NULL;
         }
-        ASSERT(current->ts_dict == tstate_dict);
-
-retry:
-	Py_INCREF(current);
-	previous = _global_state.current;
-	_global_state.current = current;
-
-        if (PyDict_GetItem(previous->ts_dict, current_fiber_key) != (PyObject *)previous) {
-            /* save previous as the current Fiber of its own (real) thread */
-            if (PyDict_SetItem(previous->ts_dict, current_fiber_key, (PyObject*) previous) < 0) {
-                Py_DECREF(previous);
-                Py_DECREF(current);
-                Py_XDECREF(exc);
-                Py_XDECREF(val);
-                Py_XDECREF(tb);
-                return NULL;
-            }
-            Py_DECREF(previous);
+        /* current starts out as main */
+        if (PyDict_SetItem(tstate_dict, current_fiber_key, (PyObject *) current) < 0) {
+            Py_DECREF(current);
+            return NULL;
         }
-        ASSERT(Py_REFCNT(previous) >= 1);
-
-	if (_global_state.current != current) {
-            /* some Python code executed above and there was a thread switch,
-             * so the global current points to some other Fiber again. We need to
-             * delete current_fiber_key and retry. */
-            PyDict_DelItem(tstate_dict, current_fiber_key);
-            goto retry;
-	}
-
-	/* release the extra reference */
+        /* return a borrowed ref. refcount should be 2 after this */
         Py_DECREF(current);
+    }
 
-	/* restore current exception */
-	PyErr_Restore(exc, val, tb);
-
-	/* thread switch could happen during PyErr_Restore, in that
-	   case there's nothing to do except restart from scratch. */
-	if (_global_state.current->ts_dict != tstate_dict) {
-            goto restart;
-        }
-
-	return current;
+    ASSERT(current != NULL);
+    return current;
 }
-
-
-/*
- * sanity check, see if there is a current Fiber or create one
- */
-#define CHECK_STATE  ((_global_state.current && _global_state.current->ts_dict == PyThreadState_Get()->dict) || update_current())
 
 
 /*
@@ -148,13 +95,15 @@ retry:
 static PyObject *
 fibers_func_current(PyObject *obj)
 {
+    Fiber *current;
+
     UNUSED_ARG(obj);
 
-    if (!CHECK_STATE) {
+    if (!(current = get_current())) {
         return NULL;
     }
-    Py_INCREF(_global_state.current);
-    return (PyObject *)_global_state.current;
+    Py_INCREF(current);
+    return (PyObject *) current;
 }
 
 
@@ -164,7 +113,7 @@ Fiber_tp_init(Fiber *self, PyObject *args, PyObject *kwargs)
     static char *kwlist[] = {"target", "args", "kwargs", "parent", NULL};
 
     PyObject *target, *t_args, *t_kwargs;
-    Fiber *parent;
+    Fiber *current, *parent;
     target = t_args = t_kwargs = NULL;
     parent = NULL;
 
@@ -177,13 +126,13 @@ Fiber_tp_init(Fiber *self, PyObject *args, PyObject *kwargs)
         return -1;
     }
 
-    if (!CHECK_STATE) {
+    if (!(current = get_current())) {
         return -1;
     }
 
     if (parent) {
         /* check if parent is on the same (real) thread */
-        if (parent->ts_dict != PyThreadState_GetDict()) {
+        if (parent->ts_dict != current->ts_dict) {
             PyErr_SetString(PyExc_FiberError, "parent cannot be on a different thread");
             return -1;
         }
@@ -192,7 +141,7 @@ Fiber_tp_init(Fiber *self, PyObject *args, PyObject *kwargs)
             return -1;
         }
     } else {
-        parent = _global_state.current;
+        parent = current;
     }
 
     if (target) {
@@ -261,15 +210,17 @@ stacklet__callback(stacklet_handle h, void *arg)
     PyThreadState *tstate;
     stacklet_handle target_h;
 
+    self = get_current();
+    ASSERT(self != NULL);
     origin = _global_state.origin;
-    self = _global_state.destination;
     value = _global_state.value;
 
+    /* save the handle to switch back to the fiber that created us */
     origin->stacklet_h = h;
-    _global_state.current = self;
 
     /* set current thread state before starting this new Fiber */
     tstate = PyThreadState_Get();
+    ASSERT(tstate != NULL);
     tstate->frame = NULL;
     tstate->exc_type = NULL;
     tstate->exc_value = NULL;
@@ -306,11 +257,7 @@ stacklet__callback(stacklet_handle h, void *arg)
         if (target->stacklet_h && target->stacklet_h != EMPTY_STACKLET_HANDLE) {
             _global_state.value = result;
             _global_state.origin = self;
-            _global_state.destination = target;
-            /* the stacklet returned here will be switched to immediately, so reset it's 
-             * reference because it will be freed after the switch happens */
             target_h = target->stacklet_h;
-            target->stacklet_h = NULL;
             break;
         }
         target = target->parent;
@@ -321,58 +268,62 @@ stacklet__callback(stacklet_handle h, void *arg)
 }
 
 
-static INLINE PyObject *
-stacklet__post_switch(stacklet_handle h)
-{
-    Fiber *origin = _global_state.origin;
-    Fiber *self = _global_state.destination;
-    PyObject *result = _global_state.value;
-
-    ASSERT(h);
-
-    _global_state.origin = NULL;
-    _global_state.destination = NULL;
-    _global_state.value = NULL;
-
-    self->stacklet_h = origin->stacklet_h;
-    origin->stacklet_h = h;
-    _global_state.current = self;
-
-    return result;
-}
-
-
 static PyObject *
 do_switch(Fiber *self, PyObject *value)
 {
     PyThreadState *tstate;
     stacklet_handle stacklet_h;
-    Fiber *current;
+    Fiber *origin, *current;
     PyObject *result;
 
     /* save state */
-    current = _global_state.current;
+    current = get_current();
+    ASSERT(current != NULL);
     tstate = PyThreadState_Get();
+    ASSERT(tstate != NULL);
+    ASSERT(tstate->dict != NULL);
     current->ts.recursion_depth = tstate->recursion_depth;
     current->ts.frame = tstate->frame;
     current->ts.exc_type = tstate->exc_type;
     current->ts.exc_value = tstate->exc_value;
     current->ts.exc_traceback = tstate->exc_traceback;
+    ASSERT(current->stacklet_h == NULL);
 
+    /* _global_state is to pass values across a switch. Its contents are only
+     * valid immediately before and after a switch. For any other purpose, the
+     * current fiber is identified by current_fiber_key in the thread state
+     * dictionary. */
     _global_state.origin = current;
-    _global_state.destination = self;
     _global_state.value = value;
 
+    /* make the target fiber the new current one. */
+    if (PyDict_SetItem(tstate->dict, current_fiber_key, (PyObject *) self) < 0) {
+        return NULL;
+    }
+
+    /* switch to existing, or create new fiber */
     if (self->stacklet_h == NULL) {
         stacklet_h = stacklet_new(self->thread_h, stacklet__callback, NULL);
     } else {
         stacklet_h = stacklet_switch(self->stacklet_h);
     }
 
-    result = stacklet__post_switch(stacklet_h);
+    /* need to store the handle of the stacklet that switched to us, so that
+     * later it can be resumed again. (stacklet_h can also be
+     * EMPTY_STACKLET_HANDLE in which case the stacklet exited) */
+    ASSERT(stacklet_h != NULL);
+    origin = _global_state.origin;
+    origin->stacklet_h = stacklet_h;
+    current->stacklet_h = NULL;  /* handle is valid only once */
+    result = _global_state.value;
+
+    /* back to the fiber that did the switch. this may drop the refcount on
+     * origin to zero. */
+    if (PyDict_SetItem(tstate->dict, current_fiber_key, (PyObject *) current) < 0) {
+        return NULL;
+    }
 
     /* restore state */
-    tstate = PyThreadState_Get();
     tstate->recursion_depth = current->ts.recursion_depth;
     tstate->frame = current->ts.frame;
     tstate->exc_type = current->ts.exc_type;
@@ -397,11 +348,10 @@ Fiber_func_switch(Fiber *self, PyObject *args)
         return NULL;
     }
 
-    if (!CHECK_STATE) {
+    if (!(current = get_current())) {
         return NULL;
     }
 
-    current = _global_state.current;
     if (self == current) {
         PyErr_SetString(PyExc_FiberError, "cannot switch from a Fiber to itself");
         return NULL;
@@ -471,11 +421,10 @@ Fiber_func_throw(Fiber *self, PyObject *args)
 	goto error;
     }
 
-    if (!CHECK_STATE) {
+    if (!(current = get_current())) {
         goto error;
     }
 
-    current = _global_state.current;
     if (self == current) {
         PyErr_SetString(PyExc_FiberError, "cannot throw from a Fiber to itself");
         goto error;
@@ -508,7 +457,14 @@ error:
 static PyObject *
 Fiber_func_is_alive(Fiber *self)
 {
-    return PyBool_FromLong(self->stacklet_h != EMPTY_STACKLET_HANDLE);
+    Fiber *current;
+
+    if (!(current = get_current())) {
+        return NULL;
+    }
+
+    /* self->stacklet_h is only valid when self is not currently running */
+    return PyBool_FromLong(current == self || self->stacklet_h != EMPTY_STACKLET_HANDLE);
 }
 
 
@@ -763,11 +719,13 @@ init_fibers(void)
 
     /* keys for per-thread dictionary */
 #if PY_MAJOR_VERSION >= 3
+    main_fiber_key = PyUnicode_InternFromString("__fibers_main");
     current_fiber_key = PyUnicode_InternFromString("__fibers_current");
 #else
+    main_fiber_key = PyString_InternFromString("__fibers_main");
     current_fiber_key = PyString_InternFromString("__fibers_current");
 #endif
-    if (current_fiber_key == NULL) {
+    if ((current_fiber_key == NULL) || (main_fiber_key == NULL)) {
         goto fail;
     }
 
