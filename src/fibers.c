@@ -296,7 +296,7 @@ do_switch(Fiber *self, PyObject *value)
     _global_state.origin = current;
     _global_state.value = value;
 
-    /* let the target know who he is */
+    /* make the target fiber the new current one. */
     if (PyDict_SetItem(tstate->dict, current_fiber_key, (PyObject *) self) < 0) {
         return NULL;
     }
@@ -308,7 +308,7 @@ do_switch(Fiber *self, PyObject *value)
         stacklet_h = stacklet_switch(self->stacklet_h);
     }
 
-    /* back to being ourselves... */
+    /* back to the fiber that did the switch */
     if (PyDict_SetItem(tstate->dict, current_fiber_key, (PyObject *) current) < 0) {
         return NULL;
     }
@@ -463,8 +463,7 @@ Fiber_func_is_alive(Fiber *self)
     }
 
     /* self->stacklet_h is only valid when self is not currently running */
-    return PyBool_FromLong(current == self ||
-                          self->stacklet_h != EMPTY_STACKLET_HANDLE);
+    return PyBool_FromLong(current == self || self->stacklet_h != EMPTY_STACKLET_HANDLE);
 }
 
 
