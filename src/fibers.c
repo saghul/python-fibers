@@ -308,11 +308,6 @@ do_switch(Fiber *self, PyObject *value)
         stacklet_h = stacklet_switch(self->stacklet_h);
     }
 
-    /* back to the fiber that did the switch */
-    if (PyDict_SetItem(tstate->dict, current_fiber_key, (PyObject *) current) < 0) {
-        return NULL;
-    }
-   
     /* need to store the handle of the stacklet that switched to us, so that
      * later it can be resumed again. (stacklet_h can also be
      * EMPTY_STACKLET_HANDLE in which case the stacklet exited) */
@@ -321,6 +316,12 @@ do_switch(Fiber *self, PyObject *value)
     origin->stacklet_h = stacklet_h;
     current->stacklet_h = NULL;  /* handle is valid only once */
     result = _global_state.value;
+
+    /* back to the fiber that did the switch. this may drop the refcount on
+     * origin to zero. */
+    if (PyDict_SetItem(tstate->dict, current_fiber_key, (PyObject *) current) < 0) {
+        return NULL;
+    }
 
     /* restore state */
     tstate->recursion_depth = current->ts.recursion_depth;
