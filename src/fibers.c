@@ -9,6 +9,7 @@ typedef struct {
 
 static volatile FiberGlobalState _global_state;
 
+static PyObject* main_fiber_key;
 static PyObject* current_fiber_key;
 
 static PyObject* PyExc_FiberError;
@@ -67,12 +68,20 @@ get_current(void)
         if (current == NULL) {
             return NULL;
         }
-        if (PyDict_SetItem(tstate_dict, current_fiber_key,
-                           (PyObject *) current) < 0) {
+        /* Keep a reference to the main fiber in the thread dict. The main
+         * fiber is special because we don't require the user to keep a
+         * reference to it. It should be deleted when the thread exits. */
+        if (PyDict_SetItem(tstate_dict, main_fiber_key, (PyObject *) current) < 0) {
             Py_DECREF(current);
             return NULL;
         }
-        Py_DECREF(current);  /* return borrowed ref */
+        /* current starts out as main */
+        if (PyDict_SetItem(tstate_dict, current_fiber_key, (PyObject *) current) < 0) {
+            Py_DECREF(current);
+            return NULL;
+        }
+        /* return a borrowed ref. refcount should be 2 after this */
+        Py_DECREF(current);
     }
 
     ASSERT(current != NULL);
@@ -710,11 +719,13 @@ init_fibers(void)
 
     /* keys for per-thread dictionary */
 #if PY_MAJOR_VERSION >= 3
+    main_fiber_key = PyUnicode_InternFromString("__fibers_main");
     current_fiber_key = PyUnicode_InternFromString("__fibers_current");
 #else
+    main_fiber_key = PyString_InternFromString("__fibers_main");
     current_fiber_key = PyString_InternFromString("__fibers_current");
 #endif
-    if (current_fiber_key == NULL) {
+    if ((current_fiber_key == NULL) || (main_fiber_key == NULL)) {
         goto fail;
     }
 
