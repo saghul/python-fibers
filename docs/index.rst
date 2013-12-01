@@ -92,8 +92,9 @@ The ``fibers`` module exports two objects, the ``Fiber`` type and the ``error`` 
         :param traceback tb: Traceback object.
 
         Suspend the current running fiber and switch execution to the target fiber,
-        raising the specified exception immediately. The fiber which called ``switch``
-        on this fiber earlier will now get an exception.
+        raising the specified exception immediately. The fiber which is resumed will
+        get the exception raised, and if it's not caught it will be propagated to
+        the parent.
 
     .. py:method:: is_alive
 
