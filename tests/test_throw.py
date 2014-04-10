@@ -1,6 +1,8 @@
 
-import sys
 import unittest
+
+import sys
+sys.path.insert(0, '../')
 
 import fibers
 from fibers import Fiber

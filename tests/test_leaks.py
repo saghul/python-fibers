@@ -1,9 +1,11 @@
 
 import gc
-import sys
 import threading
 import unittest
 import weakref
+
+import sys
+sys.path.insert(0, '../')
 
 from fibers import Fiber, current
 

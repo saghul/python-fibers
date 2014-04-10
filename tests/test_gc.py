@@ -3,6 +3,9 @@ import gc
 import unittest
 import weakref
 
+import sys
+sys.path.insert(0, '../')
+
 from fibers import Fiber, current
 
 

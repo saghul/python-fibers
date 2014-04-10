@@ -1,9 +1,11 @@
 
 import copy
-import sys
 import time
 import threading
 import unittest
+
+import sys
+sys.path.insert(0, '../')
 
 import fibers
 from fibers import Fiber, current
