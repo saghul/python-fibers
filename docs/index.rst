@@ -2,6 +2,7 @@
 fibers: lightweight concurrent multitasking
 ===========================================
 
+.. module:: fibers
 
 Overview
 --------
