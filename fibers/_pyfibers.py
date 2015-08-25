@@ -56,9 +56,12 @@ class Fiber(object):
     def current(cls):
         return current()
 
-    def _get_parent(self):
+    @property
+    def parent(self):
         return self.__dict__.get('parent', None)
-    def _set_parent(self, value):
+
+    @parent.setter
+    def parent(self, value):
         if not isinstance(value, Fiber):
             raise TypeError('parent must be a Fiber')
         if value._ended:
@@ -66,9 +69,6 @@ class Fiber(object):
         if self._thread_id != value._thread_id:
             raise ValueError('parent cannot be on a different thread')
         self.__dict__['parent'] = value
-
-    parent = property(_get_parent, _set_parent)
-    del _get_parent, _set_parent
 
     def switch(self, value=None):
         if self._ended:
