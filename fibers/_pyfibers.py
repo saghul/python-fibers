@@ -36,12 +36,10 @@ class Fiber(object):
                 cont = self._cont
                 self._cont = None
                 self._ended = True
-                parent = self.parent
-                while True:
-                    if parent is not None and parent._cont is not None and not parent._ended:
-                        break
-                    parent = parent.parent
-                _continuation.permute(cont, parent._cont)
+                _continuation.permute(
+                    cont,
+                    self._get_active_parent()._cont,
+                    )
 
         self._func = _run
 
@@ -51,6 +49,15 @@ class Fiber(object):
         if self._thread_id != parent._thread_id:
             raise error('parent cannot be on a different thread')
         self.parent = parent
+
+    def _get_active_parent(self):
+        parent = self.parent
+        while True:
+            if (parent is not None
+                    and parent._cont is not None
+                    and not parent._ended):
+                break
+        return parent.parent
 
     @classmethod
     def current(cls):
@@ -97,12 +104,7 @@ class Fiber(object):
         if self._cont is None:
             # Fiber was not started yet, propagate to parent directly
             self._ended = True
-            parent = self.parent
-            while True:
-                if parent is not None and parent._cont is not None and not parent._ended:
-                    break
-                parent = parent.parent
-            return parent.throw(*args)
+            return self._get_active_parent().throw(*args)
 
         try:
             return curr._cont.throw(*args, to=self._cont)
