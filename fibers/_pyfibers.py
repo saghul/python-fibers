@@ -12,8 +12,10 @@ def current():
     try:
         return _tls.current_fiber
     except AttributeError:
-        _create_main_fiber()
-        return _tls.current_fiber
+        fiber = _create_main_fiber()
+        _tls.current_fiber = fiber
+        _tls.main_fiber = fiber
+        return fiber
 
 
 class error(Exception):
@@ -121,6 +123,4 @@ def _create_main_fiber():
     main_fiber._is_started = True
     main_fiber._thread_id = threading.current_thread().ident
     main_fiber.__dict__['parent'] = None
-    _tls.main_fiber = main_fiber
-    _tls.current_fiber = main_fiber
-
+    return main_fiber
