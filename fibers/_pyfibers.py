@@ -57,7 +57,8 @@ class Fiber(object):
                     and parent._cont is not None
                     and not parent._ended):
                 break
-        return parent.parent
+            parent = parent.parent
+        return parent
 
     @classmethod
     def current(cls):
