@@ -12,9 +12,7 @@ def current():
     try:
         return _tls.current_fiber
     except AttributeError:
-        fiber = _create_main_fiber()
-        _tls.current_fiber = fiber
-        _tls.main_fiber = fiber
+        fiber = _tls.current_fiber = _tls.main_fiber = _create_main_fiber()
         return fiber
 
 
@@ -36,10 +34,7 @@ class Fiber(object):
                 cont = self._cont
                 self._cont = None
                 self._ended = True
-                _continuation.permute(
-                    cont,
-                    self._get_active_parent()._cont,
-                    )
+                _continuation.permute(cont, self._get_active_parent()._cont)
 
         self._func = _run
 
@@ -53,9 +48,7 @@ class Fiber(object):
     def _get_active_parent(self):
         parent = self.parent
         while True:
-            if (parent is not None
-                    and parent._cont is not None
-                    and not parent._ended):
+            if parent is not None and parent._cont is not None and not parent._ended:
                 break
             parent = parent.parent
         return parent
@@ -127,3 +120,4 @@ def _create_main_fiber():
     main_fiber._thread_id = threading.current_thread().ident
     main_fiber.__dict__['parent'] = None
     return main_fiber
+
