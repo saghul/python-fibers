@@ -1,9 +1,6 @@
 # coding=utf-8
 
-try:
-    from setuptools import setup, Extension
-except ImportError:
-    from distutils.core import setup, Extension
+from setuptools import setup, Extension
 
 import glob
 import re
