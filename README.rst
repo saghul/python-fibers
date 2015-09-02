@@ -51,6 +51,9 @@ CI status
 .. image:: https://secure.travis-ci.org/saghul/python-fibers.png?branch=master
     :target: http://travis-ci.org/saghul/python-fibers
 
+.. image:: https://ci.appveyor.com/api/projects/status/9f4h0wk797i4vc0k?svg=true
+    :target: https://ci.appveyor.com/project/saghul/python-fibers
+
 
 Documentation
 =============
@@ -92,12 +95,10 @@ Mac OSX:
     export ARCHFLAGS="-arch x86_64"
     ./build_inplace
 
-Microsoft Windows (with Visual Studio 2008):
+Microsoft Windows (with Visual Studio 2008 or 2010):
 
 ::
 
-    ./build_inplace
-    (or, with cmd.exe)
     python setup.py build_ext --inplace
 
 
@@ -137,7 +138,7 @@ they are not actively tested. CPython and PyPy are supported.
 Supported architectures
 =======================
 
-x86, x86-64 and ARM are supported.
+x86, x86-64, ARM and MIPS64 are supported.
 
 
 Contributing
