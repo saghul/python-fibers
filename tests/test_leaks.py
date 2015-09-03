@@ -77,6 +77,7 @@ class ArgRefcountTests(unittest.TestCase):
             t.join()
         current() # update ts_current
         gc.collect()
+        gc.collect()
         for g in gg:
             self.assertTrue(g() is None)
 
