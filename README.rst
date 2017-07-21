@@ -95,7 +95,7 @@ Mac OSX:
     export ARCHFLAGS="-arch x86_64"
     ./build_inplace
 
-Microsoft Windows (with Visual Studio 2008 or 2010):
+Microsoft Windows:
 
 ::
 
