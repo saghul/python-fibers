@@ -30,7 +30,7 @@ else:
             os.system('ml64 /nologo /c /Fo src\switch_x64_msvc.obj src\switch_x64_msvc.asm')
 
     ext_modules  = [Extension('fibers._cfibers',
-                              sources = glob.glob('src/*.c'),
+                              sources=glob.glob('src/*.c'),
                               extra_objects=extra_objects,
                              )]
 
