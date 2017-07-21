@@ -1,4 +1,14 @@
 
+1.1.0
+=====
+- Refactor Windows build
+- Refactor Travis builds
+- Only install what's needed to run tests on AppVeyor
+- Refactor AppVeyor builds
+- Removed tox file
+- Update README
+- Update stacklet
+
 1.0.0
 =====
 - Start keeping a changelog (check git for previous history)
