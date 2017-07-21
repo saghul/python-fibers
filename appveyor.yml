@@ -56,8 +56,8 @@ install:
   # Install wheel
   - "%CMD_IN_ENV% pip install wheel"
 
-  # Install dev requirements
-  - "%CMD_IN_ENV% pip install -r dev-requirements.txt"
+  # Install nose
+  - "%CMD_IN_ENV% pip install nose"
 
 build: false  # Not a C# project, build stuff at the test step instead.
 
@@ -75,6 +75,3 @@ artifacts:
   # Archive the generated packages in the ci.appveyor.com build report.
   - path: dist\*.whl
 
-#on_success:
-#  - TODO: upload the content of dist/*.whl to a public wheelhouse
-#
