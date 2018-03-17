@@ -116,7 +116,7 @@ class Fiber(object):
 def _create_main_fiber():
     main_fiber = Fiber.__new__(Fiber)
     main_fiber._cont = _continuation.continulet.__new__(_continuation.continulet)
-    main_fiber._is_started = True
+    main_fiber._ended = False
     main_fiber._thread_id = threading.current_thread().ident
     main_fiber.__dict__['parent'] = None
     return main_fiber
