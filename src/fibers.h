@@ -35,9 +35,13 @@ typedef struct _fiber {
     struct {
 	struct _frame *frame;
 	int recursion_depth;
+#if PY_VERSION_HEX >= 0x03070000
+		_PyErr_StackItem exc_state;
+#else
         PyObject *exc_type;
         PyObject *exc_value;
         PyObject *exc_traceback;
+#endif
     } ts;
 } Fiber;
 
