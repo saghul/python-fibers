@@ -31,7 +31,7 @@ static void *slp_switch(void *(*save_state)(void*, void*),
     /* We also push d8-d15 to preserve them explicitly.  This assumes
      * that this code is in a function that doesn't use floating-point
      * at all, and so don't touch the "d" registers (that's why we mark
-     * it as non-inlinable).  So here by pushing/poping d8-d15 we are
+     * it as non-inlinable).  So here by pushing/popping d8-d15 we are
      * saving precisely the callee-saved registers in all cases.  We
      * could also try to list all "d" registers as clobbered, but it
      * doesn't work: there is no way I could find to know if we have 16

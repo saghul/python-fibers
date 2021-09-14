@@ -41,7 +41,7 @@ Example:
     f1.switch()
 
 
-The avove example will print "1 2 3 4", but the result was obtained by the
+The above example will print "1 2 3 4", but the result was obtained by the
 cooperative work of 2 fibers yielding control to each other.
 
 
