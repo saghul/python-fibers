@@ -42,5 +42,5 @@ jobs:
     - name: Test with nose
       run: |
         # TODO covereage?
-        nosetests -v
+        nosetests3 -v
     # publish too?  or make that a separate pipeline.. or at least a parameter to this one .. we'd want to require the version number to be bumped as well
