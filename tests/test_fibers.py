@@ -12,6 +12,7 @@ if 'IS_TOX' not in os.environ:
 
 import fibers
 from fibers import Fiber, current
+import pytest
 
 
 is_pypy = hasattr(sys, 'pypy_version_info')
@@ -54,7 +55,7 @@ class FiberTests(unittest.TestCase):
         lst.append(2)
         g.switch()
         lst.append(4)
-        self.assertEqual(lst, list(range(5)))
+        assert lst == list(range(5))
 
     def test_simple2(self):
         lst = []
@@ -69,7 +70,7 @@ class FiberTests(unittest.TestCase):
         lst.append(2)
         g.switch()
         lst.append(4)
-        self.assertEqual(lst, list(range(5)))
+        assert lst == list(range(5))
 
     def test_two_children(self):
         lst = []
@@ -81,15 +82,15 @@ class FiberTests(unittest.TestCase):
         g = Fiber(f)
         h = Fiber(f)
         g.switch()
-        self.assertEqual(len(lst), 1)
+        assert len(lst) == 1
         h.switch()
-        self.assertEqual(len(lst), 2)
+        assert len(lst) == 2
         h.switch()
-        self.assertEqual(len(lst), 4)
-        self.assertEqual(h.is_alive(), False)
+        assert len(lst) == 4
+        assert h.is_alive() == False
         g.switch()
-        self.assertEqual(len(lst), 6)
-        self.assertEqual(g.is_alive(), False)
+        assert len(lst) == 6
+        assert g.is_alive() == False
 
     def test_two_recursive_children(self):
         lst = []
@@ -105,7 +106,7 @@ class FiberTests(unittest.TestCase):
             lst.append(1)
         g = Fiber(h)
         g.switch()
-        self.assertEqual(len(lst), 3)
+        assert len(lst) == 3
 
     def test_exception(self):
         seen = []
@@ -114,16 +115,18 @@ class FiberTests(unittest.TestCase):
         g1.switch()
         g2.switch()
         g2.parent = g1
-        self.assertEqual(seen, [])
-        self.assertRaises(SomeError, g2.switch)
-        self.assertEqual(seen, [SomeError])
+        assert seen == []
+        with pytest.raises(SomeError):
+            g2.switch()
+        assert seen == [SomeError]
 
     def test_send_exception(self):
         seen = []
         g1 = Fiber(target=fmain, args=(seen, ))
         g1.switch()
-        self.assertRaises(KeyError, send_exception, g1, KeyError)
-        self.assertEqual(seen, [KeyError])
+        with pytest.raises(KeyError):
+            send_exception(g1, KeyError)
+        assert seen == [KeyError]
 
 #    def test_frame(self):
 #        def f1():
@@ -151,7 +154,7 @@ class FiberTests(unittest.TestCase):
             th.start()
         for th in ths:
             th.join()
-        self.assertEqual(len(success), len(ths))
+        assert len(success) == len(ths)
 
     def test_thread_bug(self):
         def runner(x):
@@ -204,7 +207,7 @@ class FiberTests(unittest.TestCase):
             data['g'].switch()
         except fibers.error:
             error = sys.exc_info()[1]
-        self.assertTrue(error != None, "fibers.error was not raised!")
+        assert error != None, "fibers.error was not raised!"
         done_event.set()
         thread.join()
 
@@ -229,7 +232,8 @@ class FiberTests(unittest.TestCase):
         created_event.wait()
         g = Fiber(blank)
         g.switch()
-        self.assertRaises(ValueError, setparent, g, data['g'])
+        with pytest.raises(ValueError):
+            setparent(g, data['g'])
         done_event.set()
         thread.join()
 
@@ -244,7 +248,8 @@ class FiberTests(unittest.TestCase):
         t = threading.Thread(target=creator)
         t.start()
         t.join()
-        self.assertRaises(fibers.error, result[0].throw, SomeError())
+        with pytest.raises(fibers.error):
+            result[0].throw(SomeError())
 
     def test_threaded_updatecurrent(self):
         # FIXME (hangs?)
@@ -291,7 +296,7 @@ class FiberTests(unittest.TestCase):
         # check for this case at the end of green_updatecurrent(). This test
         # passes if getcurrent() returns correct result, but it's likely
         # to randomly crash if it's not anyway.
-        self.assertEqual(current(), main)
+        assert current() == main
         # wait for another thread to complete, just in case
         t.join()
 
@@ -303,11 +308,11 @@ class FiberTests(unittest.TestCase):
                 exc_info = sys.exc_info()
                 t = Fiber(h)
                 t.switch()
-                self.assertEqual(exc_info, sys.exc_info())
+                assert exc_info == sys.exc_info()
                 del t
 
         def h():
-            self.assertEqual(sys.exc_info(), (None, None, None))
+            assert sys.exc_info() == (None, None, None)
 
         g = Fiber(f)
         g.switch()
@@ -322,26 +327,31 @@ class FiberTests(unittest.TestCase):
         def setdict(g, value):
             g.__dict__ = value
         g = Fiber(f)
-        self.assertEqual(g.__dict__, {})
+        assert g.__dict__ == {}
         g.switch()
-        self.assertEqual(g.test, 42)
-        self.assertEqual(g.__dict__, {'test': 42})
+        assert g.test == 42
+        assert g.__dict__ == {'test': 42}
         g.__dict__ = g.__dict__
-        self.assertEqual(g.__dict__, {'test': 42})
-        self.assertRaises(AttributeError, deldict, g)
-        self.assertRaises(TypeError, setdict, g, 42)
+        assert g.__dict__ == {'test': 42}
+        with pytest.raises(AttributeError):
+            deldict(g)
+        with pytest.raises(TypeError):
+            setdict(g, 42)
 
     def test_deepcopy(self):
-        self.assertRaises(TypeError, copy.copy, Fiber())
-        self.assertRaises(TypeError, copy.deepcopy, Fiber())
+        with pytest.raises(TypeError):
+            copy.copy(Fiber())
+        with pytest.raises(TypeError):
+            copy.deepcopy(Fiber())
 
     def test_finished_parent(self):
         def f():
             return 42
         g = Fiber(f)
         g.switch()
-        self.assertFalse(g.is_alive())
-        self.assertRaises(ValueError, Fiber, parent=g)
+        assert not g.is_alive()
+        with pytest.raises(ValueError):
+            Fiber(parent=g)
 
 
 if __name__ == '__main__':

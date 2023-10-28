@@ -9,6 +9,7 @@ if 'IS_TOX' not in os.environ:
 
 import fibers
 from fibers import Fiber
+import pytest
 
 
 def switch(val):
@@ -26,9 +27,9 @@ class ThrowTests(unittest.TestCase):
             switch("fail")
         g = Fiber(f)
         res = g.switch()
-        self.assertEqual(res, "ok")
+        assert res == "ok"
         res = g.throw(RuntimeError)
-        self.assertEqual(res, "ok")
+        assert res == "ok"
 
     def test_val(self):
         def f():
@@ -43,15 +44,15 @@ class ThrowTests(unittest.TestCase):
 
         g = Fiber(f)
         res = g.switch()
-        self.assertEqual(res, "ok")
+        assert res == "ok"
         res = g.throw(RuntimeError("ciao"))
-        self.assertEqual(res, "ok")
+        assert res == "ok"
 
         g = Fiber(f)
         res = g.switch()
-        self.assertEqual(res, "ok")
+        assert res == "ok"
         res = g.throw(RuntimeError, "ciao")
-        self.assertEqual(res, "ok")
+        assert res == "ok"
 
     def test_kill(self):
         def f():
@@ -62,10 +63,10 @@ class ThrowTests(unittest.TestCase):
                 return e
         g = Fiber(f)
         res = g.switch()
-        self.assertEqual(res, "ok")
+        assert res == "ok"
         res = g.throw(ValueError)
-        self.assertTrue(isinstance(res, ValueError))
-        self.assertFalse(g.is_alive())
+        assert isinstance(res, ValueError)
+        assert not g.is_alive()
 
     def test_throw_goes_to_original_parent(self):
         main = fibers.current()
@@ -83,9 +84,10 @@ class ThrowTests(unittest.TestCase):
 
         g1 = Fiber(f1)
         g2 = Fiber(target=f2, parent=g1)
-        self.assertRaises(IndexError, g2.throw, IndexError)
-        self.assertFalse(g2.is_alive())
-        self.assertTrue(g1.is_alive())    # g1 is skipped because it was not started
+        with pytest.raises(IndexError):
+            g2.throw(IndexError)
+        assert not g2.is_alive()
+        assert g1.is_alive()    # g1 is skipped because it was not started
 
     def test_throw_goes_to_original_parent2(self):
         main = fibers.current()
@@ -104,11 +106,11 @@ class ThrowTests(unittest.TestCase):
         g1 = Fiber(f1)
         g2 = Fiber(target=f2, parent=g1)
         res = g1.switch()
-        self.assertEqual(res, "f1 ready to catch")
+        assert res == "f1 ready to catch"
         res = g2.throw(IndexError)
-        self.assertEqual(res, "caught")
-        self.assertFalse(g2.is_alive())
-        self.assertFalse(g1.is_alive())
+        assert res == "caught"
+        assert not g2.is_alive()
+        assert not g1.is_alive()
 
     def test_throw_goes_to_original_parent3(self):
         main = fibers.current()
@@ -127,13 +129,13 @@ class ThrowTests(unittest.TestCase):
         g1 = Fiber(f1)
         g2 = Fiber(target=f2, parent=g1)
         res = g1.switch()
-        self.assertEqual(res, "f1 ready to catch")
+        assert res == "f1 ready to catch"
         res = g2.switch()
-        self.assertEqual(res, "from f2")
+        assert res == "from f2"
         res = g2.throw(IndexError)
-        self.assertEqual(res, "caught")
-        self.assertFalse(g2.is_alive())
-        self.assertFalse(g1.is_alive())
+        assert res == "caught"
+        assert not g2.is_alive()
+        assert not g1.is_alive()
 
 
 if __name__ == '__main__':

@@ -21,12 +21,12 @@ class WeakRefTests(unittest.TestCase):
             return g
         o = weakref.ref(_dead_fiber())
         gc.collect()
-        self.assertEqual(o(), None)
+        assert o() == None
 
     def test_inactive_weakref(self):
         o = weakref.ref(Fiber())
         gc.collect()
-        self.assertEqual(o(), None)
+        assert o() == None
 
 
 if __name__ == '__main__':

@@ -21,21 +21,21 @@ class GCTests(unittest.TestCase):
         o.self = o
         o = weakref.ref(o)
         gc.collect()
-        self.assertTrue(o() is None)
-        self.assertFalse(gc.garbage, gc.garbage)
+        assert o() is None
+        assert not gc.garbage, gc.garbage
 
     def test_dead_circular_ref(self):
         o = weakref.ref(Fiber(current).switch())
         gc.collect()
-        self.assertTrue(o() is None)
-        self.assertFalse(gc.garbage, gc.garbage)
+        assert o() is None
+        assert not gc.garbage, gc.garbage
 
     def test_inactive_ref(self):
         o = Fiber(lambda: None)
         o = weakref.ref(o)
         gc.collect()
-        self.assertTrue(o() is None)
-        self.assertFalse(gc.garbage, gc.garbage)
+        assert o() is None
+        assert not gc.garbage, gc.garbage
 
     def test_finalizer_crash(self):
         # This test is designed to crash when active greenlets

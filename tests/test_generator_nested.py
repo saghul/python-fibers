@@ -137,22 +137,21 @@ class NestedGeneratorTests(unittest.TestCase):
         seen = []
         for ii in gr2(5, seen):
             seen.append(ii)
-        self.assertEqual(seen, [1, 1, 2, 4, 3, 9, 4, 16])
+        assert seen == [1, 1, 2, 4, 3, 9, 4, 16]
 
     def test_permutations(self):
         gen_perms = perms(list(range(4)))
         permutations = list(gen_perms)
-        self.assertEqual(len(permutations), 4 * 3 * 2 * 1)
-        self.assertTrue([0, 1, 2, 3] in permutations)
-        self.assertTrue([3, 2, 1, 0] in permutations)
+        assert len(permutations) == 4 * 3 * 2 * 1
+        assert [0, 1, 2, 3] in permutations
+        assert [3, 2, 1, 0] in permutations
         res = []
         for ii in zip(perms(list(range(4))), perms(list(range(3)))):
             res.append(ii)
-        self.assertEqual(
-            res,
+        assert res == \
             [([0, 1, 2, 3], [0, 1, 2]), ([0, 1, 3, 2], [0, 2, 1]),
              ([0, 2, 1, 3], [1, 0, 2]), ([0, 2, 3, 1], [1, 2, 0]),
-             ([0, 3, 1, 2], [2, 0, 1]), ([0, 3, 2, 1], [2, 1, 0])])
+             ([0, 3, 1, 2], [2, 0, 1]), ([0, 3, 2, 1], [2, 1, 0])]
         # XXX Test to make sure we are working as a generator expression
 
     def test_genlet_simple(self):
@@ -161,7 +160,7 @@ class NestedGeneratorTests(unittest.TestCase):
             for k in range(3):
                 for j in g(5, seen):
                     seen.append(j)
-            self.assertEqual(seen, 3 * [1, 0, 2, 1, 3, 2, 4, 3, 5, 4])
+            assert seen == 3 * [1, 0, 2, 1, 3, 2, 4, 3, 5, 4]
 
     def test_genlet_bad(self):
         try:

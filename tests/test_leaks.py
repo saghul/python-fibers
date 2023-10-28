@@ -25,11 +25,11 @@ class ArgRefcountTests(unittest.TestCase):
         args = ('a', 'b', 'c')
         refcount_before = sys.getrefcount(args)
         g = Fiber(target=lambda *x: None, args=args)
-        self.assertEqual(sys.getrefcount(args), refcount_before+1)
+        assert sys.getrefcount(args) == refcount_before+1
         g.switch()
-        self.assertEqual(sys.getrefcount(args), refcount_before)
+        assert sys.getrefcount(args) == refcount_before
         del g
-        self.assertEqual(sys.getrefcount(args), refcount_before)
+        assert sys.getrefcount(args) == refcount_before
 
     def test_kwarg_refs(self):
         if not has_refcount:
@@ -37,11 +37,11 @@ class ArgRefcountTests(unittest.TestCase):
         kwargs = {'a': 1234}
         refcount_before = sys.getrefcount(kwargs)
         g = Fiber(lambda **x: None, kwargs=kwargs)
-        self.assertEqual(sys.getrefcount(kwargs), refcount_before+1)
+        assert sys.getrefcount(kwargs) == refcount_before+1
         g.switch()
-        self.assertEqual(sys.getrefcount(kwargs), refcount_before)
+        assert sys.getrefcount(kwargs) == refcount_before
         del g
-        self.assertEqual(sys.getrefcount(kwargs), refcount_before)
+        assert sys.getrefcount(kwargs) == refcount_before
 
     def test_threaded_leak(self):
         if is_pypy:
@@ -57,7 +57,7 @@ class ArgRefcountTests(unittest.TestCase):
         current() # update ts_current
         gc.collect()
         for g in gg:
-            self.assertTrue(g() is None)
+            assert g() is None
 
     def test_threaded_adv_leak(self):
         if is_pypy:
@@ -79,7 +79,7 @@ class ArgRefcountTests(unittest.TestCase):
         gc.collect()
         gc.collect()
         for g in gg:
-            self.assertTrue(g() is None)
+            assert g() is None
 
 
 if __name__ == '__main__':
