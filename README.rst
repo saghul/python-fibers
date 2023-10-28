@@ -131,7 +131,7 @@ Unless stated otherwise on-file fibers uses the MIT license, check LICENSE file.
 Supported Python versions
 =========================
 
-Python >= 2.7 and >= 3.3 are supported. Other older Python versions might work, but
+Python >= 3.5 are supported. Other older Python versions might work, but
 they are not actively tested. CPython and PyPy are supported.
 
 
