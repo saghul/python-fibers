@@ -207,7 +207,7 @@ stacklet__callback(stacklet_handle h, void *arg)
 {
     Fiber *origin, *self, *target;
     PyObject *result, *value;
-    PyThreadState *tstate;
+    PyThreadState *tstate;		/* Include/cpython/pystate.h -> struct _ts */
     stacklet_handle target_h;
 
     self = get_current();
@@ -221,25 +221,46 @@ stacklet__callback(stacklet_handle h, void *arg)
     /* set current thread state before starting this new Fiber */
     tstate = PyThreadState_Get();
     ASSERT(tstate != NULL);
+#if PY_VERSION_HEX >= 0x030B0000 // TODO
+    //tstate->cframe = NULL;
+    tstate->cframe->current_frame = NULL;
+    tstate->curexc_type = NULL;
+    tstate->curexc_value = NULL;
+    tstate->curexc_traceback = NULL;
+    //TODO not present as exc_state says not to access outside of init()   tstate->exc_state.previous_item = NULL;
+#elif PY_VERSION_HEX >= 0x03070000
     tstate->frame = NULL;
-#if PY_VERSION_HEX >= 0x03070000
     tstate->exc_state.exc_type = NULL;
     tstate->exc_state.exc_value = NULL;
     tstate->exc_state.exc_traceback = NULL;
     tstate->exc_state.previous_item = NULL;
 #else
+    tstate->frame = NULL;
     tstate->exc_type = NULL;
     tstate->exc_value = NULL;
     tstate->exc_traceback = NULL;
 #endif
+
+#if PY_VERSION_HEX >= 0x030B0000
+    self->ts.recursion_remaining = tstate->recursion_remaining;
+    self->ts.recursion_limit = tstate->recursion_limit;
+    self->ts.recursion_headroom = tstate->recursion_headroom;
+    //self->ts.cframe = NULL;
+    self->ts.current_frame = NULL;
+    self->ts.curexc_type = NULL;
+    self->ts.curexc_value = NULL;
+    self->ts.curexc_traceback = NULL;
+    // TODO not present ... self->ts.exc_state.previous_item = NULL;
+#elif PY_VERSION_HEX >= 0x03070000
     self->ts.recursion_depth = tstate->recursion_depth;
     self->ts.frame = NULL;
-#if PY_VERSION_HEX >= 0x03070000
     self->ts.exc_state.exc_type = NULL;
     self->ts.exc_state.exc_value = NULL;
     self->ts.exc_state.exc_traceback = NULL;
     self->ts.exc_state.previous_item = NULL;
 #else
+    self->ts.recursion_depth = tstate->recursion_depth;
+    self->ts.frame = NULL;
     self->ts.exc_type = NULL;
     self->ts.exc_value = NULL;
     self->ts.exc_traceback = NULL;
@@ -296,14 +317,26 @@ do_switch(Fiber *self, PyObject *value)
     tstate = PyThreadState_Get();
     ASSERT(tstate != NULL);
     ASSERT(tstate->dict != NULL);
+#if PY_VERSION_HEX >= 0x030B0000
+    current->ts.recursion_remaining = tstate->recursion_remaining;
+    current->ts.recursion_limit = tstate->recursion_limit;
+    current->ts.recursion_headroom = tstate->recursion_headroom;
+    //current->ts.cframe = tstate->cframe;
+    current->ts.current_frame = tstate->cframe->current_frame;
+    current->ts.curexc_type = tstate->curexc_type;
+    current->ts.curexc_value = tstate->curexc_value;
+    current->ts.curexc_traceback = tstate->curexc_traceback;
+    //TODO not present .. current->ts.exc_state.previous_item = tstate->exc_state.previous_item;
+#elif PY_VERSION_HEX >= 0x03070000
     current->ts.recursion_depth = tstate->recursion_depth;
     current->ts.frame = tstate->frame;
-#if PY_VERSION_HEX >= 0x03070000
     current->ts.exc_state.exc_type = tstate->exc_state.exc_type;
     current->ts.exc_state.exc_value = tstate->exc_state.exc_value;
     current->ts.exc_state.exc_traceback = tstate->exc_state.exc_traceback;
     current->ts.exc_state.previous_item = tstate->exc_state.previous_item;
 #else
+    current->ts.recursion_depth = tstate->recursion_depth;
+    current->ts.frame = tstate->frame;
     current->ts.exc_type = tstate->exc_type;
     current->ts.exc_value = tstate->exc_value;
     current->ts.exc_traceback = tstate->exc_traceback;
@@ -345,25 +378,45 @@ do_switch(Fiber *self, PyObject *value)
     }
 
     /* restore state */
+#if PY_VERSION_HEX >= 0x030B0000
+    tstate->recursion_remaining = current->ts.recursion_remaining;
+    tstate->recursion_limit = current->ts.recursion_limit;
+    tstate->recursion_headroom = current->ts.recursion_headroom;
+    //tstate->cframe = current->ts.cframe;
+    tstate->cframe->current_frame = current->ts.current_frame;
+    tstate->curexc_type = current->ts.curexc_type;
+    tstate->curexc_value = current->ts.curexc_value;
+    tstate->curexc_traceback = current->ts.curexc_traceback;
+    // TODO not present .. tstate->exc_state.previous_item = current->ts.exc_state.previous_item;
+#elif PY_VERSION_HEX >= 0x03070000
     tstate->recursion_depth = current->ts.recursion_depth;
     tstate->frame = current->ts.frame;
-#if PY_VERSION_HEX >= 0x03070000
     tstate->exc_state.exc_type = current->ts.exc_state.exc_type;
     tstate->exc_state.exc_value = current->ts.exc_state.exc_value;
     tstate->exc_state.exc_traceback = current->ts.exc_state.exc_traceback;
     tstate->exc_state.previous_item = current->ts.exc_state.previous_item;
 #else
+    tstate->frame = current->ts.frame;
     tstate->exc_type = current->ts.exc_type;
     tstate->exc_value = current->ts.exc_value;
     tstate->exc_traceback = current->ts.exc_traceback;
 #endif
+
+#if PY_VERSION_HEX >= 0x030B0000
+    //current->ts.cframe = NULL;
+    current->ts.current_frame = NULL;
+    current->ts.curexc_type = NULL;
+    current->ts.curexc_value = NULL;
+    current->ts.curexc_traceback = NULL;
+    // TODO not present current->ts.exc_state.previous_item = NULL;
+#elif PY_VERSION_HEX >= 0x03070000
     current->ts.frame = NULL;
-#if PY_VERSION_HEX >= 0x03070000
     current->ts.exc_state.exc_type = NULL;
     current->ts.exc_state.exc_value = NULL;
     current->ts.exc_state.exc_traceback = NULL;
     current->ts.exc_state.previous_item = NULL;
 #else
+    current->ts.frame = NULL;
     current->ts.exc_type = NULL;
     current->ts.exc_value = NULL;
     current->ts.exc_traceback = NULL;
@@ -617,13 +670,21 @@ Fiber_tp_traverse(Fiber *self, visitproc visit, void *arg)
     Py_VISIT(self->dict);
     Py_VISIT(self->ts_dict);
     Py_VISIT(self->parent);
+#if PY_VERSION_HEX >= 0x030B0000
+    //Py_VISIT(self->ts.cframe);
+    Py_VISIT(self->ts.current_frame);
+    Py_VISIT(self->ts.curexc_type);
+    Py_VISIT(self->ts.curexc_value);
+    Py_VISIT(self->ts.curexc_traceback);
+    //TODO not present .. Py_VISIT(self->ts.exc_state.previous_item);
+#elif PY_VERSION_HEX >= 0x03070000
     Py_VISIT(self->ts.frame);
-#if PY_VERSION_HEX >= 0x03070000
     Py_VISIT(self->ts.exc_state.exc_type);
     Py_VISIT(self->ts.exc_state.exc_value);
     Py_VISIT(self->ts.exc_state.exc_traceback);
     Py_VISIT(self->ts.exc_state.previous_item);
 #else
+    Py_VISIT(self->ts.frame);
     Py_VISIT(self->ts.exc_type);
     Py_VISIT(self->ts.exc_value);
     Py_VISIT(self->ts.exc_traceback);
@@ -641,13 +702,21 @@ Fiber_tp_clear(Fiber *self)
     Py_CLEAR(self->dict);
     Py_CLEAR(self->ts_dict);
     Py_CLEAR(self->parent);
+#if PY_VERSION_HEX >= 0x030B0000
+    //Py_CLEAR(self->ts.cframe);
+    Py_CLEAR(self->ts.current_frame);
+    Py_CLEAR(self->ts.curexc_type);
+    Py_CLEAR(self->ts.curexc_value);
+    Py_CLEAR(self->ts.curexc_traceback);
+    //TODO not present .. Py_CLEAR(self->ts.exc_state.previous_item);
+#elif PY_VERSION_HEX >= 0x03070000
     Py_CLEAR(self->ts.frame);
-#if PY_VERSION_HEX >= 0x03070000
     Py_CLEAR(self->ts.exc_state.exc_type);
     Py_CLEAR(self->ts.exc_state.exc_value);
     Py_CLEAR(self->ts.exc_state.exc_traceback);
     Py_CLEAR(self->ts.exc_state.previous_item);
-#else
+#else // < py3.7
+    Py_CLEAR(self->ts.frame);
     Py_CLEAR(self->ts.exc_type);
     Py_CLEAR(self->ts.exc_value);
     Py_CLEAR(self->ts.exc_traceback);
