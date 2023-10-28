@@ -32,6 +32,7 @@ jobs:
         # TODO I'd rather install things
         ./build_inplace
         #python -m pip install flake8 nose
+        python -m pip install nose
         #if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     #- name: Lint with flake8   # TODO flake8 it?
     #  run: |
@@ -42,5 +43,5 @@ jobs:
     - name: Test with nose
       run: |
         # TODO covereage?
-        nosetests3 -v
+        nosetests -v
     # publish too?  or make that a separate pipeline.. or at least a parameter to this one .. we'd want to require the version number to be bumped as well
