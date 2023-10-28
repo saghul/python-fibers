@@ -1,0 +1,46 @@
+name: Python package
+
+on:
+  push:
+    branches: [ "update-for-python3.12-gh-actions" ]
+  pull_request:
+    branches: [ "update-for-python3.12-gh-actions" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        #python-version: ["3.7", "3.8", "3.9", "3.10", "3.11"]
+        python-version: ["3.7"]
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+		# let's see how it runs things
+		ls -al 
+		# are we in an venv
+		set
+        python -m pip install --upgrade pip
+		# TODO I'd rather install things
+		./build_inplace
+        #python -m pip install flake8 nose
+        #if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+    #- name: Lint with flake8   # TODO flake8 it?
+    #  run: |
+    #    # stop the build if there are Python syntax errors or undefined names
+    #    flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+    #    # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+    #    flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+    - name: Test with nose
+      run: |
+		# TODO covereage?
+        nosetests -v
+	# publish too?  or make that a separate pipeline.. or at least a parameter to this one .. we'd want to require the version number to be bumped as well
