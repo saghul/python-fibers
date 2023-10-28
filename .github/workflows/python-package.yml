@@ -24,13 +24,13 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-		# let's see how it runs things
-		ls -al 
-		# are we in an venv
-		set
+        # let's see how it runs things
+        ls -al 
+        # are we in an venv
+        set
         python -m pip install --upgrade pip
-		# TODO I'd rather install things
-		./build_inplace
+        # TODO I'd rather install things
+        ./build_inplace
         #python -m pip install flake8 nose
         #if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
     #- name: Lint with flake8   # TODO flake8 it?
@@ -41,6 +41,6 @@ jobs:
     #    flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
     - name: Test with nose
       run: |
-		# TODO covereage?
+        # TODO covereage?
         nosetests -v
-	# publish too?  or make that a separate pipeline.. or at least a parameter to this one .. we'd want to require the version number to be bumped as well
+    # publish too?  or make that a separate pipeline.. or at least a parameter to this one .. we'd want to require the version number to be bumped as well
