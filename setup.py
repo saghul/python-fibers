@@ -32,6 +32,7 @@ else:
     ext_modules  = [Extension('fibers._cfibers',
                               sources=glob.glob('src/*.c'),
                               extra_objects=extra_objects,
+                              extra_compile_args=['-O0', '-g'],  # TODO don't commit this way in the end
                              )]
 
 
