@@ -9,10 +9,13 @@ on:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
+        # would use windows-latest, but distutils tries to build against the version of MSVC that python was compiled with
+        #   https://github.com/pypa/setuptools/blob/main/setuptools/_distutils/msvc9compiler.py#L403
+        os: [ "ubuntu-latest", "macos-latest", "windows-2019" ]
         python-version: ["3.7", "3.8", "3.9", "3.10"]
 
     steps:
