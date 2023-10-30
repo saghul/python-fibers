@@ -33,22 +33,11 @@ typedef struct _fiber {
     PyObject *args;
     PyObject *kwargs;
     struct {
-#if PY_VERSION_HEX >= 0x030B0000
-        //struct _PyCFrame *cframe; // TODO this may need to just save the ->current_frame value
-        struct _PyInterpreterFrame *current_frame;
-        int recursion_remaining;
-        int recursion_limit;
-        int recursion_headroom;
-        PyObject* curexc_type;
-        PyObject* curexc_value;
-        PyObject* curexc_traceback;
-#elif PY_VERSION_HEX >= 0x03070000
-        struct _frame *frame;
-        int recursion_depth;
+	struct _frame *frame;
+	int recursion_depth;
+#if PY_VERSION_HEX >= 0x03070000
         _PyErr_StackItem exc_state;
 #else
-        struct _frame *frame;
-        int recursion_depth;
         PyObject *exc_type;
         PyObject *exc_value;
         PyObject *exc_traceback;
