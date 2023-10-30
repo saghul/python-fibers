@@ -6,9 +6,6 @@ import unittest
 import os
 import sys
 
-if 'IS_TOX' not in os.environ:
-    sys.path.insert(0, '../')
-
 import fibers
 from fibers import Fiber
 

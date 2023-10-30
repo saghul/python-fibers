@@ -7,9 +7,6 @@ import weakref
 import os
 import sys
 
-if 'IS_TOX' not in os.environ:
-    sys.path.insert(0, '../')
-
 from fibers import Fiber, current
 
 
