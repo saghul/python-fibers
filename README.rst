@@ -48,12 +48,7 @@ cooperative work of 2 fibers yielding control to each other.
 CI status
 =========
 
-# TODO
-.. image:: https://secure.travis-ci.org/saghul/python-fibers.png?branch=master
-    :target: http://travis-ci.org/saghul/python-fibers
-
-.. image:: https://ci.appveyor.com/api/projects/status/9f4h0wk797i4vc0k?svg=true
-    :target: https://ci.appveyor.com/project/saghul/python-fibers
+::target: https://github.com/saghul/python-fibers/actions/
 
 
 Documentation

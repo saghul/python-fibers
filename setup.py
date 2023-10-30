@@ -32,7 +32,6 @@ else:
     ext_modules  = [Extension('fibers._cfibers',
                               sources=glob.glob('src/*.c'),
                               extra_objects=extra_objects,
-                              extra_compile_args=['-O0', '-g'],  # TODO don't commit this way in the end
                              )]
 
 
@@ -57,11 +56,10 @@ setup(name             = 'fibers',
           'Operating System :: Microsoft :: Windows',
           'Programming Language :: Python',
           'Programming Language :: Python :: 3',
+          'Programming Language :: Python :: 3.7',
           'Programming Language :: Python :: 3.8',
           'Programming Language :: Python :: 3.9',
           'Programming Language :: Python :: 3.10',
-          'Programming Language :: Python :: 3.11',
-          'Programming Language :: Python :: 3.12',
           'Programming Language :: Python :: Implementation :: CPython',
           'Programming Language :: Python :: Implementation :: PyPy',
       ],
