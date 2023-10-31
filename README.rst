@@ -102,11 +102,11 @@ Microsoft Windows:
 Running the test suite
 ======================
 
-The test suite can be run using nose:
+The test suite can be run using pytest:
 
 ::
 
-    nosetests -v
+    python -m pytest -v .
 
 
 Author
