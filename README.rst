@@ -112,7 +112,7 @@ The test suite can be run using pytest:
 Author
 ======
 
-Saúl Ibarra Corretgé <saghul@gmail.com>
+Saúl Ibarra Corretgé <s@saghul.net>
 
 This project would not have been possible without the previous work done in
 the `greenlet <http://greenlet.readthedocs.org>`_ and stacklet (part of

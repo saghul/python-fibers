@@ -42,7 +42,7 @@ def get_version():
 setup(name             = 'fibers',
       version          = get_version(),
       author           = 'Saúl Ibarra Corretgé',
-      author_email     = 'saghul@gmail.com',
+      author_email     = 's@saghul.net',
       url              = 'http://github.com/saghul/python-fibers',
       description      = 'Lightweight cooperative microthreads for Pyhton',
       long_description = open('README.rst').read(),
@@ -65,4 +65,3 @@ setup(name             = 'fibers',
       ],
       ext_modules  = ext_modules
 )
-
