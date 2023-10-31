@@ -6,7 +6,7 @@ Why fibers
 
 Fibers was created because I wanted to implement an API which looked pretty much
 like a thread but with greenlet, but the API offered by greenlet got in the way,
-so I decided to try and extract the minimum ammount of funcionality I needed and
+so I decided to try and extract the minimum amount of functionality I needed and
 make the API *I* wanted to use.
 
 Note the use of the first person singular here, this was created for myself, I'm

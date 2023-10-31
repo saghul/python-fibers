@@ -184,7 +184,7 @@ void *slp_switch(void *(*save_state)(void*, void*),
      "li 12,-304\n"
      "lvx 31,12,1\n"
 
-     "ld  14,-288(1)\n"     /* restore general purporse registers */
+     "ld  14,-288(1)\n"     /* restore general purpose registers */
      "ld  15,-280(1)\n"
      "ld  16,-272(1)\n"
      "ld  17,-264(1)\n"
