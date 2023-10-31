@@ -1,12 +1,7 @@
-
 This project would not have been possible without the previous work from
 greenlet (http://greenlet.readthedocs.org) and stacklet / pypy (http://pypy.org)
 
 
 Contributors
 ------------
-Benoit Chesneau
-Geert Jansen
-Marc Schlaich
-Eeo Jun
-
+https://github.com/saghul/python-fibers/graphs/contributors
