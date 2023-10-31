@@ -222,28 +222,17 @@ stacklet__callback(stacklet_handle h, void *arg)
     tstate = PyThreadState_Get();
     ASSERT(tstate != NULL);
     tstate->frame = NULL;
-#if PY_VERSION_HEX >= 0x03070000
     tstate->exc_state.exc_type = NULL;
     tstate->exc_state.exc_value = NULL;
     tstate->exc_state.exc_traceback = NULL;
     tstate->exc_state.previous_item = NULL;
-#else
-    tstate->exc_type = NULL;
-    tstate->exc_value = NULL;
-    tstate->exc_traceback = NULL;
-#endif
+
     self->ts.recursion_depth = tstate->recursion_depth;
     self->ts.frame = NULL;
-#if PY_VERSION_HEX >= 0x03070000
     self->ts.exc_state.exc_type = NULL;
     self->ts.exc_state.exc_value = NULL;
     self->ts.exc_state.exc_traceback = NULL;
     self->ts.exc_state.previous_item = NULL;
-#else
-    self->ts.exc_type = NULL;
-    self->ts.exc_value = NULL;
-    self->ts.exc_traceback = NULL;
-#endif
 
     if (value == NULL) {
         /* pending exception, user called throw on a non-started Fiber,
@@ -298,16 +287,10 @@ do_switch(Fiber *self, PyObject *value)
     ASSERT(tstate->dict != NULL);
     current->ts.recursion_depth = tstate->recursion_depth;
     current->ts.frame = tstate->frame;
-#if PY_VERSION_HEX >= 0x03070000
     current->ts.exc_state.exc_type = tstate->exc_state.exc_type;
     current->ts.exc_state.exc_value = tstate->exc_state.exc_value;
     current->ts.exc_state.exc_traceback = tstate->exc_state.exc_traceback;
     current->ts.exc_state.previous_item = tstate->exc_state.previous_item;
-#else
-    current->ts.exc_type = tstate->exc_type;
-    current->ts.exc_value = tstate->exc_value;
-    current->ts.exc_traceback = tstate->exc_traceback;
-#endif
     ASSERT(current->stacklet_h == NULL);
 
     /* _global_state is to pass values across a switch. Its contents are only
@@ -347,27 +330,16 @@ do_switch(Fiber *self, PyObject *value)
     /* restore state */
     tstate->recursion_depth = current->ts.recursion_depth;
     tstate->frame = current->ts.frame;
-#if PY_VERSION_HEX >= 0x03070000
     tstate->exc_state.exc_type = current->ts.exc_state.exc_type;
     tstate->exc_state.exc_value = current->ts.exc_state.exc_value;
     tstate->exc_state.exc_traceback = current->ts.exc_state.exc_traceback;
     tstate->exc_state.previous_item = current->ts.exc_state.previous_item;
-#else
-    tstate->exc_type = current->ts.exc_type;
-    tstate->exc_value = current->ts.exc_value;
-    tstate->exc_traceback = current->ts.exc_traceback;
-#endif
+
     current->ts.frame = NULL;
-#if PY_VERSION_HEX >= 0x03070000
     current->ts.exc_state.exc_type = NULL;
     current->ts.exc_state.exc_value = NULL;
     current->ts.exc_state.exc_traceback = NULL;
     current->ts.exc_state.previous_item = NULL;
-#else
-    current->ts.exc_type = NULL;
-    current->ts.exc_value = NULL;
-    current->ts.exc_traceback = NULL;
-#endif
 
     return result;
 }
@@ -618,16 +590,11 @@ Fiber_tp_traverse(Fiber *self, visitproc visit, void *arg)
     Py_VISIT(self->ts_dict);
     Py_VISIT(self->parent);
     Py_VISIT(self->ts.frame);
-#if PY_VERSION_HEX >= 0x03070000
     Py_VISIT(self->ts.exc_state.exc_type);
     Py_VISIT(self->ts.exc_state.exc_value);
     Py_VISIT(self->ts.exc_state.exc_traceback);
     Py_VISIT(self->ts.exc_state.previous_item);
-#else
-    Py_VISIT(self->ts.exc_type);
-    Py_VISIT(self->ts.exc_value);
-    Py_VISIT(self->ts.exc_traceback);
-#endif
+
     return 0;
 }
 
@@ -642,16 +609,11 @@ Fiber_tp_clear(Fiber *self)
     Py_CLEAR(self->ts_dict);
     Py_CLEAR(self->parent);
     Py_CLEAR(self->ts.frame);
-#if PY_VERSION_HEX >= 0x03070000
     Py_CLEAR(self->ts.exc_state.exc_type);
     Py_CLEAR(self->ts.exc_state.exc_value);
     Py_CLEAR(self->ts.exc_state.exc_traceback);
     Py_CLEAR(self->ts.exc_state.previous_item);
-#else
-    Py_CLEAR(self->ts.exc_type);
-    Py_CLEAR(self->ts.exc_value);
-    Py_CLEAR(self->ts.exc_traceback);
-#endif
+
     return 0;
 }
 
@@ -718,7 +680,7 @@ static PyTypeObject FiberType = {
     (traverseproc)Fiber_tp_traverse,                                /*tp_traverse*/
     (inquiry)Fiber_tp_clear,                                        /*tp_clear*/
     0,                                                              /*tp_richcompare*/
-    offsetof(Fiber, weakreflist),	                            /*tp_weaklistoffset*/
+    offsetof(Fiber, weakreflist),                                   /*tp_weaklistoffset*/
     0,                                                              /*tp_iter*/
     0,                                                              /*tp_iternext*/
     Fiber_tp_methods,                                               /*tp_methods*/
@@ -742,38 +704,28 @@ fibers_methods[] = {
 };
 
 
-#if PY_MAJOR_VERSION >= 3
 static PyModuleDef fibers_module = {
     PyModuleDef_HEAD_INIT,
-    "fibers._cfibers",        /*m_name*/
-    NULL,                     /*m_doc*/
-    -1,                       /*m_size*/
-    fibers_methods  ,         /*m_methods*/
+    "fibers._cfibers",    /*m_name*/
+    NULL,                 /*m_doc*/
+    -1,                   /*m_size*/
+    fibers_methods,       /*m_methods*/
 };
-#endif
 
 
 /* Module */
-PyObject *
-init_fibers(void)
+PyMODINIT_FUNC
+PyInit__cfibers(void)
 {
     PyObject *fibers;
 
     /* Main module */
-#if PY_MAJOR_VERSION >= 3
     fibers = PyModule_Create(&fibers_module);
-#else
-    fibers = Py_InitModule("fibers._cfibers", fibers_methods);
-#endif
 
     /* keys for per-thread dictionary */
-#if PY_MAJOR_VERSION >= 3
     main_fiber_key = PyUnicode_InternFromString("__fibers_main");
     current_fiber_key = PyUnicode_InternFromString("__fibers_current");
-#else
-    main_fiber_key = PyString_InternFromString("__fibers_main");
-    current_fiber_key = PyString_InternFromString("__fibers_current");
-#endif
+
     if ((current_fiber_key == NULL) || (main_fiber_key == NULL)) {
         goto fail;
     }
@@ -788,25 +740,7 @@ init_fibers(void)
     return fibers;
 
 fail:
-#if PY_MAJOR_VERSION >= 3
     Py_DECREF(fibers);
-#endif
+
     return NULL;
-
 }
-
-
-#if PY_MAJOR_VERSION >= 3
-PyMODINIT_FUNC
-PyInit__cfibers(void)
-{
-    return init_fibers();
-}
-#else
-PyMODINIT_FUNC
-init_cfibers(void)
-{
-    init_fibers();
-}
-#endif
-
