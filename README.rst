@@ -48,11 +48,7 @@ cooperative work of 2 fibers yielding control to each other.
 CI status
 =========
 
-.. image:: https://secure.travis-ci.org/saghul/python-fibers.png?branch=master
-    :target: http://travis-ci.org/saghul/python-fibers
-
-.. image:: https://ci.appveyor.com/api/projects/status/9f4h0wk797i4vc0k?svg=true
-    :target: https://ci.appveyor.com/project/saghul/python-fibers
+::target: https://github.com/saghul/python-fibers/actions/
 
 
 Documentation
@@ -131,7 +127,7 @@ Unless stated otherwise on-file fibers uses the MIT license, check LICENSE file.
 Supported Python versions
 =========================
 
-Python >= 2.7 and >= 3.3 are supported. Other older Python versions might work, but
+Python >= 3.7 are supported. Other older Python versions might work, but
 they are not actively tested. CPython and PyPy are supported.
 
 

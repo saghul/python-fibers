@@ -15,7 +15,9 @@ __pycache__/
 *.swp
 *.out
 
+.venv*
 .tox/
+.gdb_history
 deps/
 docs/_build/
 

@@ -1,2 +1,3 @@
-nose
+build
+pytest
 sphinx
