@@ -48,7 +48,8 @@ cooperative work of 2 fibers yielding control to each other.
 CI status
 =========
 
-::target: https://github.com/saghul/python-fibers/actions/
+.. image:: https://github.com/saghul/python-fibers/actions/workflows/python-package.yml/badge.svg
+    ::target: https://github.com/saghul/python-fibers/actions/
 
 
 Documentation
