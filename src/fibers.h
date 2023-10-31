@@ -5,9 +5,6 @@
 #define PY_SSIZE_T_CLEAN
 #include "Python.h"
 
-#if PY_MAJOR_VERSION >= 3
-#endif
-
 /* stacklet */
 #include "stacklet.h"
 
@@ -33,15 +30,9 @@ typedef struct _fiber {
     PyObject *args;
     PyObject *kwargs;
     struct {
-	struct _frame *frame;
-	int recursion_depth;
-#if PY_VERSION_HEX >= 0x03070000
+        struct _frame *frame;
+        int recursion_depth;
         _PyErr_StackItem exc_state;
-#else
-        PyObject *exc_type;
-        PyObject *exc_value;
-        PyObject *exc_traceback;
-#endif
     } ts;
 } Fiber;
 
@@ -80,19 +71,4 @@ MyPyModule_AddType(PyObject *module, const char *name, PyTypeObject *type)
     return 0;
 }
 
-/* Add an object to a module */
-/*
-static int
-MyPyModule_AddObject(PyObject *module, const char *name, PyObject *value)
-{
-    Py_INCREF(value);
-    if (PyModule_AddObject(module, name, value)) {
-        Py_DECREF(value);
-        return -1;
-    }
-    return 0;
-}
-*/
-
 #endif
-
