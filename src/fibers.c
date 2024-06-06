@@ -221,17 +221,32 @@ stacklet__callback(stacklet_handle h, void *arg)
     /* set current thread state before starting this new Fiber */
     tstate = PyThreadState_Get();
     ASSERT(tstate != NULL);
+    tstate->exc_state.exc_value = NULL;
+#if PY_MINOR_VERSION < 11
     tstate->frame = NULL;
     tstate->exc_state.exc_type = NULL;
-    tstate->exc_state.exc_value = NULL;
     tstate->exc_state.exc_traceback = NULL;
+#else
+    tstate->datastack_chunk = NULL;
+    tstate->datastack_top = NULL;
+    tstate->datastack_limit = NULL;
+    tstate->cframe->current_frame = NULL;
+#endif
     tstate->exc_state.previous_item = NULL;
 
-    self->ts.recursion_depth = tstate->recursion_depth;
     self->ts.frame = NULL;
-    self->ts.exc_state.exc_type = NULL;
     self->ts.exc_state.exc_value = NULL;
+#if PY_MINOR_VERSION < 11
+    self->ts.recursion_depth = tstate->recursion_depth;
+    self->ts.exc_state.exc_type = NULL;
     self->ts.exc_state.exc_traceback = NULL;
+#else
+    self->ts.recursion_depth = tstate->recursion_limit - tstate->recursion_remaining;
+    self->ts.cframe = NULL;
+    self->ts.datastack_chunk = NULL;
+    self->ts.datastack_top = NULL;
+    self->ts.datastack_limit = NULL;
+#endif
     self->ts.exc_state.previous_item = NULL;
 
     if (value == NULL) {
@@ -285,11 +300,21 @@ do_switch(Fiber *self, PyObject *value)
     tstate = PyThreadState_Get();
     ASSERT(tstate != NULL);
     ASSERT(tstate->dict != NULL);
+    current->ts.exc_state.exc_value = tstate->exc_state.exc_value;
+#if PY_MINOR_VERSION < 11
     current->ts.recursion_depth = tstate->recursion_depth;
     current->ts.frame = tstate->frame;
     current->ts.exc_state.exc_type = tstate->exc_state.exc_type;
-    current->ts.exc_state.exc_value = tstate->exc_state.exc_value;
     current->ts.exc_state.exc_traceback = tstate->exc_state.exc_traceback;
+#else
+    current->ts.recursion_depth = tstate->recursion_limit - tstate->recursion_remaining;
+    current->ts.frame = PyThreadState_GetFrame(tstate);
+    Py_XDECREF(current->ts.frame);
+    current->ts.cframe = tstate->cframe;
+    current->ts.datastack_chunk = tstate->datastack_chunk;
+    current->ts.datastack_top = tstate->datastack_top;
+    current->ts.datastack_limit = tstate->datastack_limit;
+#endif
     current->ts.exc_state.previous_item = tstate->exc_state.previous_item;
     ASSERT(current->stacklet_h == NULL);
 
@@ -328,17 +353,32 @@ do_switch(Fiber *self, PyObject *value)
     }
 
     /* restore state */
+    tstate->exc_state.exc_value = current->ts.exc_state.exc_value;
+#if PY_MINOR_VERSION < 11
     tstate->recursion_depth = current->ts.recursion_depth;
     tstate->frame = current->ts.frame;
     tstate->exc_state.exc_type = current->ts.exc_state.exc_type;
-    tstate->exc_state.exc_value = current->ts.exc_state.exc_value;
     tstate->exc_state.exc_traceback = current->ts.exc_state.exc_traceback;
+#else
+    tstate->recursion_remaining = tstate->recursion_limit - current->ts.recursion_depth;
+    tstate->cframe = current->ts.cframe;
+    tstate->datastack_chunk = current->ts.datastack_chunk;
+    tstate->datastack_top = current->ts.datastack_top;
+    tstate->datastack_limit = current->ts.datastack_limit;
+#endif
     tstate->exc_state.previous_item = current->ts.exc_state.previous_item;
 
     current->ts.frame = NULL;
-    current->ts.exc_state.exc_type = NULL;
     current->ts.exc_state.exc_value = NULL;
+#if PY_MINOR_VERSION < 11
+    current->ts.exc_state.exc_type = NULL;
     current->ts.exc_state.exc_traceback = NULL;
+#else
+    current->ts.cframe = NULL;
+    current->ts.datastack_chunk = NULL;
+    current->ts.datastack_top = NULL;
+    current->ts.datastack_limit = NULL;
+#endif
     current->ts.exc_state.previous_item = NULL;
 
     return result;
@@ -590,9 +630,11 @@ Fiber_tp_traverse(Fiber *self, visitproc visit, void *arg)
     Py_VISIT(self->ts_dict);
     Py_VISIT(self->parent);
     Py_VISIT(self->ts.frame);
-    Py_VISIT(self->ts.exc_state.exc_type);
     Py_VISIT(self->ts.exc_state.exc_value);
+#if PY_MINOR_VERSION < 11
+    Py_VISIT(self->ts.exc_state.exc_type);
     Py_VISIT(self->ts.exc_state.exc_traceback);
+#endif
     Py_VISIT(self->ts.exc_state.previous_item);
 
     return 0;
@@ -609,9 +651,11 @@ Fiber_tp_clear(Fiber *self)
     Py_CLEAR(self->ts_dict);
     Py_CLEAR(self->parent);
     Py_CLEAR(self->ts.frame);
-    Py_CLEAR(self->ts.exc_state.exc_type);
     Py_CLEAR(self->ts.exc_state.exc_value);
+#if PY_MINOR_VERSION < 11
+    Py_CLEAR(self->ts.exc_state.exc_type);
     Py_CLEAR(self->ts.exc_state.exc_traceback);
+#endif
     Py_CLEAR(self->ts.exc_state.previous_item);
 
     return 0;
