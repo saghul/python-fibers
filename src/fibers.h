@@ -30,6 +30,12 @@ typedef struct _fiber {
     PyObject *args;
     PyObject *kwargs;
     struct {
+#if PY_MINOR_VERSION >= 11
+        _PyCFrame *cframe;
+        _PyStackChunk *datastack_chunk;
+        PyObject **datastack_top;
+        PyObject **datastack_limit;
+#endif
         struct _frame *frame;
         int recursion_depth;
         _PyErr_StackItem exc_state;

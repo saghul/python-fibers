@@ -6,6 +6,7 @@ import unittest
 
 import os
 import sys
+import traceback
 
 import fibers
 from fibers import Fiber, current
@@ -68,6 +69,19 @@ class FiberTests(unittest.TestCase):
         g.switch()
         lst.append(4)
         assert lst == list(range(5))
+
+    def test_clean_callstack(self):
+        lst = []
+        
+        def f():
+            for line in traceback.format_stack():
+                lst.append(line)
+        f()
+        expected = [lst[-1]]
+        lst = []
+        g = Fiber(f)
+        g.switch()
+        assert lst == expected
 
     def test_two_children(self):
         lst = []
