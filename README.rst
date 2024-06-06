@@ -135,7 +135,7 @@ they are not actively tested. CPython and PyPy are supported.
 Supported architectures
 =======================
 
-x86, x86-64, ARM, MIPS64, PPC64 and s390x are supported.
+x86, x86-64, ARM, ARM64, MIPS64, PPC64 and s390x are supported.
 
 
 Contributing
