@@ -241,7 +241,12 @@ stacklet__callback(stacklet_handle h, void *arg)
     self->ts.exc_state.exc_type = NULL;
     self->ts.exc_state.exc_traceback = NULL;
 #else
+#if PY_MINOR_VERSION < 12
     self->ts.recursion_depth = tstate->recursion_limit - tstate->recursion_remaining;
+#else
+    self->ts.recursion_depth = tstate->py_recursion_limit - tstate->py_recursion_remaining;
+    self->ts.c_recursion_remaining = tstate->c_recursion_remaining;
+#endif
     self->ts.cframe = NULL;
     self->ts.datastack_chunk = NULL;
     self->ts.datastack_top = NULL;
@@ -307,7 +312,12 @@ do_switch(Fiber *self, PyObject *value)
     current->ts.exc_state.exc_type = tstate->exc_state.exc_type;
     current->ts.exc_state.exc_traceback = tstate->exc_state.exc_traceback;
 #else
+#if PY_MINOR_VERSION < 12
     current->ts.recursion_depth = tstate->recursion_limit - tstate->recursion_remaining;
+#else
+    current->ts.recursion_depth = tstate->py_recursion_limit - tstate->py_recursion_remaining;
+    current->ts.c_recursion_remaining = tstate->c_recursion_remaining;
+#endif
     current->ts.frame = PyThreadState_GetFrame(tstate);
     Py_XDECREF(current->ts.frame);
     current->ts.cframe = tstate->cframe;
@@ -360,7 +370,12 @@ do_switch(Fiber *self, PyObject *value)
     tstate->exc_state.exc_type = current->ts.exc_state.exc_type;
     tstate->exc_state.exc_traceback = current->ts.exc_state.exc_traceback;
 #else
+#if PY_MINOR_VERSION < 12
     tstate->recursion_remaining = tstate->recursion_limit - current->ts.recursion_depth;
+#else
+    tstate->py_recursion_remaining = tstate->py_recursion_limit - current->ts.recursion_depth;
+    tstate->c_recursion_remaining = current->ts.c_recursion_remaining;
+#endif
     tstate->cframe = current->ts.cframe;
     tstate->datastack_chunk = current->ts.datastack_chunk;
     tstate->datastack_top = current->ts.datastack_top;

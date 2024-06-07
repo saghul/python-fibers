@@ -38,6 +38,9 @@ typedef struct _fiber {
 #endif
         struct _frame *frame;
         int recursion_depth;
+#if PY_MINOR_VERSION >= 12
+        int c_recursion_remaining;
+#endif
         _PyErr_StackItem exc_state;
     } ts;
 } Fiber;
