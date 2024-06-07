@@ -24,10 +24,10 @@ else:
 
         if '32 bit' in sys.version:
             extra_objects = ['src/switch_x86_msvc.obj']
-            os.system('ml /nologo /c /Fo src\switch_x86_msvc.obj src\switch_x86_msvc.asm')
+            os.system('ml /nologo /c /Fo src\\switch_x86_msvc.obj src\\switch_x86_msvc.asm')
         else:
             extra_objects = ['src/switch_x64_msvc.obj']
-            os.system('ml64 /nologo /c /Fo src\switch_x64_msvc.obj src\switch_x64_msvc.asm')
+            os.system('ml64 /nologo /c /Fo src\\switch_x64_msvc.obj src\\switch_x64_msvc.asm')
 
     ext_modules  = [Extension('fibers._cfibers',
                               sources=glob.glob('src/*.c'),
